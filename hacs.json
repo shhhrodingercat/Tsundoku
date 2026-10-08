@@ -1,0 +1,7 @@
+{
+  "name": "Tsundoku",
+  "content_in_root": false,
+  "filename": "custom_components/tsundoku",
+  "render_readme": true,
+  "homeassistant": "2026.8.0"
+}
