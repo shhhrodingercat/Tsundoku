@@ -1,12 +1,12 @@
 {
   "domain": "tsundoku",
   "name": "Tsundoku",
-  "version": "0.1.0",
-  "documentation": "https://github.com/shhhrodingercat/tsundoku",
-  "issue_tracker": "https://github.com/shhhrodingercat/tsundoku/issues",
-  "codeowners": ["@shhhrodingercat"],
+  "codeowners": [],
   "config_flow": true,
+  "dependencies": [],
+  "documentation": "https://github.com/shhhrodingercat/tsundoku",
   "integration_type": "hub",
   "iot_class": "cloud_polling",
-  "requirements": []
+  "requirements": [],
+  "version": "0.1.0"
 }
