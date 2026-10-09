@@ -1,0 +1,30 @@
+# Python
+
+**pycache**/
+*.py[cod]
+*.egg-info/
+
+# Virtual environments
+
+.venv/
+.venv-*/
+venv/
+
+# Test and lint caches
+
+.pytest_cache/
+.ruff_cache/
+.coverage
+htmlcov/
+
+# Local manga database and runtime metadata
+
+manga-metadata.sqlite
+metadata.json
+
+# Local tests and development tools
+
+test_*.py
+pytest.ini
+explore.py
+

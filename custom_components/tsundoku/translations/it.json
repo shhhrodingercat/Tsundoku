@@ -1,0 +1,18 @@
+{
+  "entity": {
+    "sensor": {
+      "next_volume": {
+        "name": "Prossimo volume"
+      },
+      "next_release": {
+        "name": "Prossima uscita"
+      },
+      "latest_volume": {
+        "name": "Ultimo volume"
+      },
+      "volumes": {
+        "name": "Volumi"
+      }
+    }
+  }
+}
