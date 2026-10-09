@@ -1,7 +1,7 @@
 {
   "domain": "tsundoku",
   "name": "Tsundoku",
-  "codeowners": [],
+  "codeowners": ["@shhhrodingercat"],
   "config_flow": true,
   "dependencies": [],
   "documentation": "https://github.com/shhhrodingercat/tsundoku",
@@ -10,3 +10,4 @@
   "requirements": [],
   "version": "0.1.0"
 }
+
