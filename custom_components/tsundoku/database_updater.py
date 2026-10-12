@@ -204,7 +204,10 @@ class DatabaseUpdater:
         self.status.last_error = None
 
         try:
-            if self.status.version == version:
+            if (
+                self.status.version == version
+                and self.validate_database()
+            ):
                 self.status.status = "up-to-date"
                 self.status.last_check = now
                 self.save_status()

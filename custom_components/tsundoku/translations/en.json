@@ -12,6 +12,26 @@
       },
       "volumes": {
         "name": "Volumes"
+      },
+      "database_status": {
+        "name": "Database status"
+      },
+      "database_version": {
+        "name": "Database version"
+      },
+      "database_updated": {
+        "name": "Database updated"
+      },
+      "last_check": {
+        "name": "Last check"
+      },
+      "database_size": {
+        "name": "Database size"
+      }
+    },
+    "button": {
+      "update_database": {
+        "name": "Update database"
       }
     }
   }

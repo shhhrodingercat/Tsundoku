@@ -63,7 +63,10 @@ class DatabaseManager:
         try:
             remote = await self.fetcher.get_latest_database()
 
-            if self.status.version == remote.version:
+            if (
+                self.status.version == remote.version
+                and self.updater.validate_database()
+            ):
                 self.status.status = "up-to-date"
                 self.status.last_error = None
                 self.updater.save_status()

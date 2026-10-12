@@ -1,4 +1,4 @@
-from datetime import date
+from datetime import date, datetime
 
 from homeassistant.components.sensor import (
     SensorDeviceClass,
@@ -9,10 +9,12 @@ from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.entity import EntityCategory
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
+from homeassistant.helpers.update_coordinator import CoordinatorEntity
 from homeassistant.util import dt as dt_util
 
 from . import TsundokuRuntimeData
 from .coordinator import TsundokuCoordinator
+from .database_coordinator import TsundokuDatabaseCoordinator
 from .entity import TsundokuEntity, TsundokuSystemEntity
 
 
@@ -23,14 +25,15 @@ async def async_setup_entry(
 ) -> None:
     """Set up Tsundoku sensors."""
     runtime_data: TsundokuRuntimeData = entry.runtime_data
-    coordinator: TsundokuCoordinator = runtime_data.coordinator
+    coordinator = runtime_data.coordinator
+    database_coordinator = runtime_data.database_coordinator
 
     entities: list[SensorEntity] = [
-        TsundokuDatabaseStatusSensor(runtime_data),
-        TsundokuDatabaseVersionSensor(runtime_data),
-        TsundokuDatabaseUpdatedSensor(runtime_data),
-        TsundokuLastCheckSensor(runtime_data),
-        TsundokuDatabaseSizeSensor(runtime_data),
+        TsundokuDatabaseStatusSensor(database_coordinator),
+        TsundokuDatabaseVersionSensor(database_coordinator),
+        TsundokuDatabaseUpdatedSensor(database_coordinator),
+        TsundokuLastCheckSensor(database_coordinator),
+        TsundokuDatabaseSizeSensor(database_coordinator),
     ]
 
     for tome_id in coordinator.data:
@@ -46,24 +49,35 @@ async def async_setup_entry(
     async_add_entities(entities)
 
 
-class TsundokuDatabaseSensor(TsundokuSystemEntity, SensorEntity):
+class TsundokuDatabaseSensor(
+    TsundokuSystemEntity,
+    CoordinatorEntity[TsundokuDatabaseCoordinator],
+    SensorEntity,
+):
     """Base class for database status sensors."""
 
     _attr_entity_category = EntityCategory.DIAGNOSTIC
 
-    def __init__(self, runtime_data: TsundokuRuntimeData) -> None:
+    def __init__(
+        self,
+        coordinator: TsundokuDatabaseCoordinator,
+    ) -> None:
         """Initialize the database sensor."""
-        self.runtime_data = runtime_data
+        super().__init__(coordinator)
 
     @property
-    def extra_state_attributes(self) -> dict:
-        """Return database diagnostic attributes."""
-        status = self.runtime_data.database_manager.status
+    def extra_state_attributes(self) -> dict[str, str]:
+        """Return available database diagnostic attributes."""
+        status = self.coordinator.data
+        attributes = {}
 
-        return {
-            "checksum": status.checksum,
-            "last_error": status.last_error,
-        }
+        if status.checksum is not None:
+            attributes["checksum"] = status.checksum
+
+        if status.last_error is not None:
+            attributes["last_error"] = status.last_error
+
+        return attributes
 
 
 class TsundokuDatabaseStatusSensor(TsundokuDatabaseSensor):
@@ -72,13 +86,16 @@ class TsundokuDatabaseStatusSensor(TsundokuDatabaseSensor):
     _attr_translation_key = "database_status"
     _attr_icon = "mdi:database-check"
 
-    def __init__(self, runtime_data: TsundokuRuntimeData) -> None:
-        super().__init__(runtime_data)
+    def __init__(
+        self,
+        coordinator: TsundokuDatabaseCoordinator,
+    ) -> None:
+        super().__init__(coordinator)
         self._attr_unique_id = "database_status"
 
     @property
     def native_value(self) -> str:
-        return self.runtime_data.database_manager.status.status
+        return self.coordinator.data.status
 
 
 class TsundokuDatabaseVersionSensor(TsundokuDatabaseSensor):
@@ -87,13 +104,16 @@ class TsundokuDatabaseVersionSensor(TsundokuDatabaseSensor):
     _attr_translation_key = "database_version"
     _attr_icon = "mdi:tag-outline"
 
-    def __init__(self, runtime_data: TsundokuRuntimeData) -> None:
-        super().__init__(runtime_data)
+    def __init__(
+        self,
+        coordinator: TsundokuDatabaseCoordinator,
+    ) -> None:
+        super().__init__(coordinator)
         self._attr_unique_id = "database_version"
 
     @property
     def native_value(self) -> str | None:
-        return self.runtime_data.database_manager.status.version
+        return self.coordinator.data.version
 
 
 class TsundokuDatabaseUpdatedSensor(TsundokuDatabaseSensor):
@@ -102,13 +122,16 @@ class TsundokuDatabaseUpdatedSensor(TsundokuDatabaseSensor):
     _attr_translation_key = "database_updated"
     _attr_device_class = SensorDeviceClass.TIMESTAMP
 
-    def __init__(self, runtime_data: TsundokuRuntimeData) -> None:
-        super().__init__(runtime_data)
+    def __init__(
+        self,
+        coordinator: TsundokuDatabaseCoordinator,
+    ) -> None:
+        super().__init__(coordinator)
         self._attr_unique_id = "database_updated"
 
     @property
-    def native_value(self):
-        value = self.runtime_data.database_manager.status.database_updated
+    def native_value(self) -> datetime | None:
+        value = self.coordinator.data.database_updated
         return dt_util.as_utc(value) if value else None
 
 
@@ -118,13 +141,16 @@ class TsundokuLastCheckSensor(TsundokuDatabaseSensor):
     _attr_translation_key = "last_check"
     _attr_device_class = SensorDeviceClass.TIMESTAMP
 
-    def __init__(self, runtime_data: TsundokuRuntimeData) -> None:
-        super().__init__(runtime_data)
+    def __init__(
+        self,
+        coordinator: TsundokuDatabaseCoordinator,
+    ) -> None:
+        super().__init__(coordinator)
         self._attr_unique_id = "last_check"
 
     @property
-    def native_value(self):
-        value = self.runtime_data.database_manager.status.last_check
+    def native_value(self) -> datetime | None:
+        value = self.coordinator.data.last_check
         return dt_util.as_utc(value) if value else None
 
 
@@ -132,16 +158,19 @@ class TsundokuDatabaseSizeSensor(TsundokuDatabaseSensor):
     """Sensor for the local database size."""
 
     _attr_translation_key = "database_size"
-    _attr_native_unit_of_measurement = "MB"
+    _attr_native_unit_of_measurement = "MiB"
     _attr_state_class = SensorStateClass.MEASUREMENT
 
-    def __init__(self, runtime_data: TsundokuRuntimeData) -> None:
-        super().__init__(runtime_data)
+    def __init__(
+        self,
+        coordinator: TsundokuDatabaseCoordinator,
+    ) -> None:
+        super().__init__(coordinator)
         self._attr_unique_id = "database_size"
 
     @property
     def native_value(self) -> float | None:
-        size = self.runtime_data.database_manager.status.size
+        size = self.coordinator.data.size
         return round(size / (1024 * 1024), 2) if size is not None else None
 
 
