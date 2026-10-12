@@ -1,3 +1,4 @@
+```python
 from homeassistant.helpers.update_coordinator import CoordinatorEntity
 
 from .const import DOMAIN
@@ -6,7 +7,7 @@ from .models import TrackedReleaseLine
 
 
 class TsundokuEntity(CoordinatorEntity[TsundokuCoordinator]):
-    """Base entity for Tsundoku."""
+    """Base entity for Tsundoku manga release lines."""
 
     _attr_has_entity_name = True
 
@@ -18,13 +19,9 @@ class TsundokuEntity(CoordinatorEntity[TsundokuCoordinator]):
         super().__init__(coordinator)
 
         self.tome_id = tome_id
-
         tracked = self._tracked
 
-        self._attr_unique_id = (
-            f"{tome_id}_{self._entity_suffix}"
-        )
-
+        self._attr_unique_id = f"{tome_id}_{self._entity_suffix}"
         self._attr_device_info = {
             "identifiers": {(DOMAIN, tome_id)},
             "name": tracked.release_line.name,
@@ -41,3 +38,20 @@ class TsundokuEntity(CoordinatorEntity[TsundokuCoordinator]):
     def _entity_suffix(self) -> str:
         """Return the entity-specific unique ID suffix."""
         raise NotImplementedError
+
+
+class TsundokuSystemEntity:
+    """Base class for entities belonging to the Tsundoku system device."""
+
+    _attr_has_entity_name = True
+
+    @property
+    def device_info(self) -> dict:
+        """Return information about the Tsundoku system device."""
+        return {
+            "identifiers": {(DOMAIN, "system")},
+            "name": "Tsundoku",
+            "manufacturer": "Tsundoku",
+            "model": "Manga database manager",
+        }
+```
