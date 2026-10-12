@@ -1,4 +1,3 @@
-```python
 from homeassistant.helpers.update_coordinator import CoordinatorEntity
 
 from .const import DOMAIN
@@ -54,4 +53,3 @@ class TsundokuSystemEntity:
             "manufacturer": "Tsundoku",
             "model": "Manga database manager",
         }
-```
