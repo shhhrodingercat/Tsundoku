@@ -6,6 +6,7 @@ from homeassistant.components.sensor import (
     SensorStateClass,
 )
 from homeassistant.config_entries import ConfigEntry
+from homeassistant.const import UnitOfInformation
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.entity import EntityCategory
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
@@ -27,7 +28,6 @@ async def async_setup_entry(
     runtime_data: TsundokuRuntimeData = entry.runtime_data
     coordinator = runtime_data.coordinator
     database_coordinator = runtime_data.database_coordinator
-
     entities: list[SensorEntity] = [
         TsundokuDatabaseStatusSensor(database_coordinator),
         TsundokuDatabaseVersionSensor(database_coordinator),
@@ -35,7 +35,6 @@ async def async_setup_entry(
         TsundokuLastCheckSensor(database_coordinator),
         TsundokuDatabaseSizeSensor(database_coordinator),
     ]
-
     for tome_id in coordinator.data:
         entities.extend(
             (
@@ -45,7 +44,6 @@ async def async_setup_entry(
                 TsundokuVolumesSensor(coordinator, tome_id),
             )
         )
-
     async_add_entities(entities)
 
 
@@ -58,25 +56,18 @@ class TsundokuDatabaseSensor(
 
     _attr_entity_category = EntityCategory.DIAGNOSTIC
 
-    def __init__(
-        self,
-        coordinator: TsundokuDatabaseCoordinator,
-    ) -> None:
-        """Initialize the database sensor."""
+    def __init__(self, coordinator: TsundokuDatabaseCoordinator) -> None:
         super().__init__(coordinator)
 
     @property
     def extra_state_attributes(self) -> dict[str, str]:
         """Return available database diagnostic attributes."""
         status = self.coordinator.data
-        attributes = {}
-
+        attributes: dict[str, str] = {}
         if status.checksum is not None:
             attributes["checksum"] = status.checksum
-
         if status.last_error is not None:
             attributes["last_error"] = status.last_error
-
         return attributes
 
 
@@ -86,10 +77,7 @@ class TsundokuDatabaseStatusSensor(TsundokuDatabaseSensor):
     _attr_translation_key = "database_status"
     _attr_icon = "mdi:database-check"
 
-    def __init__(
-        self,
-        coordinator: TsundokuDatabaseCoordinator,
-    ) -> None:
+    def __init__(self, coordinator: TsundokuDatabaseCoordinator) -> None:
         super().__init__(coordinator)
         self._attr_unique_id = "database_status"
 
@@ -104,10 +92,7 @@ class TsundokuDatabaseVersionSensor(TsundokuDatabaseSensor):
     _attr_translation_key = "database_version"
     _attr_icon = "mdi:tag-outline"
 
-    def __init__(
-        self,
-        coordinator: TsundokuDatabaseCoordinator,
-    ) -> None:
+    def __init__(self, coordinator: TsundokuDatabaseCoordinator) -> None:
         super().__init__(coordinator)
         self._attr_unique_id = "database_version"
 
@@ -122,10 +107,7 @@ class TsundokuDatabaseUpdatedSensor(TsundokuDatabaseSensor):
     _attr_translation_key = "database_updated"
     _attr_device_class = SensorDeviceClass.TIMESTAMP
 
-    def __init__(
-        self,
-        coordinator: TsundokuDatabaseCoordinator,
-    ) -> None:
+    def __init__(self, coordinator: TsundokuDatabaseCoordinator) -> None:
         super().__init__(coordinator)
         self._attr_unique_id = "database_updated"
 
@@ -141,10 +123,7 @@ class TsundokuLastCheckSensor(TsundokuDatabaseSensor):
     _attr_translation_key = "last_check"
     _attr_device_class = SensorDeviceClass.TIMESTAMP
 
-    def __init__(
-        self,
-        coordinator: TsundokuDatabaseCoordinator,
-    ) -> None:
+    def __init__(self, coordinator: TsundokuDatabaseCoordinator) -> None:
         super().__init__(coordinator)
         self._attr_unique_id = "last_check"
 
@@ -158,13 +137,11 @@ class TsundokuDatabaseSizeSensor(TsundokuDatabaseSensor):
     """Sensor for the local database size."""
 
     _attr_translation_key = "database_size"
-    _attr_native_unit_of_measurement = "MiB"
+    _attr_device_class = SensorDeviceClass.DATA_SIZE
+    _attr_native_unit_of_measurement = UnitOfInformation.MEBIBYTES
     _attr_state_class = SensorStateClass.MEASUREMENT
 
-    def __init__(
-        self,
-        coordinator: TsundokuDatabaseCoordinator,
-    ) -> None:
+    def __init__(self, coordinator: TsundokuDatabaseCoordinator) -> None:
         super().__init__(coordinator)
         self._attr_unique_id = "database_size"
 
@@ -190,7 +167,7 @@ class TsundokuNextVolumeSensor(TsundokuEntity, SensorEntity):
 
 
 class TsundokuNextReleaseSensor(TsundokuEntity, SensorEntity):
-    """Sensor for the next release date."""
+    """Sensor for the next release date, including month-precision dates."""
 
     _attr_translation_key = "next_release"
     _attr_device_class = SensorDeviceClass.DATE
@@ -202,7 +179,37 @@ class TsundokuNextReleaseSensor(TsundokuEntity, SensorEntity):
     @property
     def native_value(self) -> date | None:
         volume = self._tracked.next_volume
-        return volume.release_date if volume else None
+        if volume is None:
+            return None
+        if volume.release_date is not None:
+            return volume.release_date
+        if volume.release_date_precision == "month" and volume.release_date_raw:
+            try:
+                return date.fromisoformat(f"{volume.release_date_raw}-01")
+            except ValueError:
+                return None
+        return None
+
+    @property
+    def extra_state_attributes(self) -> dict[str, str]:
+        """Expose the original date and its precision."""
+        volume = self._tracked.next_volume
+        if volume is None:
+            return {}
+        attributes: dict[str, str] = {}
+        precision = volume.release_date_precision
+        if precision is None and volume.release_date is not None:
+            precision = "day"
+        if precision is not None:
+            attributes["release_date_precision"] = precision
+        raw_date = volume.release_date_raw
+        if raw_date is None and volume.release_date is not None:
+            raw_date = volume.release_date.isoformat()
+        if raw_date is not None:
+            attributes["release_date_raw"] = raw_date
+        if volume.release_date_type is not None:
+            attributes["release_date_type"] = volume.release_date_type
+        return attributes
 
 
 class TsundokuLatestVolumeSensor(TsundokuEntity, SensorEntity):
