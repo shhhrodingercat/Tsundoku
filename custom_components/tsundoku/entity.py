@@ -15,10 +15,18 @@ class TsundokuEntity(CoordinatorEntity[TsundokuCoordinator]):
         self.tome_id = tome_id
         tracked = self._tracked
         self._attr_unique_id = f"{tome_id}_{self._entity_suffix}"
+        release_line = tracked.release_line
+        edition_parts = [release_line.name]
+        if release_line.country:
+            edition_parts.append(release_line.country.upper())
+        if release_line.language:
+            edition_parts.append(release_line.language.lower())
+        if release_line.publisher:
+            edition_parts.append(release_line.publisher)
         self._attr_device_info = {
             "identifiers": {(DOMAIN, tome_id)},
-            "name": tracked.release_line.name,
-            "manufacturer": "Tsundoku",
+            "name": " · ".join(edition_parts),
+            "manufacturer": release_line.publisher or "Tsundoku",
             "model": "Manga release line",
         }
 
