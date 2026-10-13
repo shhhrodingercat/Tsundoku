@@ -18,7 +18,6 @@ from . import TsundokuRuntimeData
 from .coordinator import TsundokuCoordinator
 from .database_coordinator import TsundokuDatabaseCoordinator
 from .entity import TsundokuEntity, TsundokuSystemEntity
-from .localization import load_locale_catalog
 
 
 async def async_setup_entry(
@@ -179,18 +178,6 @@ class TsundokuNextReleaseSensor(TsundokuEntity, SensorEntity):
         return "next_release"
 
     @property
-    def available(self) -> bool:
-        """Mark approximate month-only dates unavailable instead of inventing a day."""
-        if not super().available:
-            return False
-        volume = self._tracked.next_volume
-        return not (
-            volume is not None
-            and volume.release_date is None
-            and volume.release_date_precision == "month"
-        )
-
-    @property
     def native_value(self) -> date | None:
         volume = self._tracked.next_volume
         return volume.release_date if volume is not None else None
@@ -224,7 +211,7 @@ class TsundokuNextReleaseSensor(TsundokuEntity, SensorEntity):
                 year = int(year_text)
                 month = int(month_text)
                 if 1 <= month <= 12:
-                    catalog = load_locale_catalog(self.hass.config.language)
+                    catalog = self.coordinator.entry.runtime_data.locale_catalog
                     months = catalog.get("months", [])
                     if len(months) >= 12:
                         attributes["release_date_display"] = (
