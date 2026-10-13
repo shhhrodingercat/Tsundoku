@@ -7,7 +7,7 @@ It shows the latest published volume and the next known release for each manga e
 ## Features
 
 * **Track manga editions:** each edition is a separate Home Assistant device, so the Japanese and English releases of the same series are tracked independently.
-* **Search by title or alias:** find editions by name, local name or alias, optionally filtered by country and language.
+* **Search by title or alias:** find editions by name, local name or alias, optionally filtered by market/edition and language. Filter choices are populated from values present in the local database.
 * **Next release:** next known volume number and its release date.
 * **Latest release:** latest volume that has already been published.
 * **Published volume count:** number of volumes already published.
@@ -46,7 +46,7 @@ Metadata and release dates depend on the upstream dataset and may be incomplete 
 
 ## Setup
 
-1. Add the integration and type a title (or part of it) in the search form. Optionally filter by **country** and **language**; both filters are case-insensitive. The values used by the dataset are short codes such as `JP`, `EN`, `DE` or `FR`.
+1. Add the integration and type a title (or part of it) in the search form. Optionally choose a **market / edition** and **language** from the dropdowns. Choices come from the values actually present in the database, so the market field is intentionally not described as an ISO country code: upstream data can contain values such as `EN`.
 2. Select one or more editions to track.
 
 Only one Tsundoku instance can be configured. To change your list later, open the integration and choose **Configure**: you can add new editions through a new search or remove existing ones. Removing an edition also removes its device and entities.
@@ -60,7 +60,7 @@ Each edition is a device named after the title, country, language and publisher,
 | Sensor        | Description                                                                 |
 | ------------- | --------------------------------------------------------------------------- |
 | Next volume   | Number of the next volume with a known upcoming release                      |
-| Next release  | Release date of that volume                                                  |
+| Next release  | Exact release date of that volume; unavailable when the source only provides a month |
 | Latest volume | Number of the latest volume known to be published                            |
 | Volumes       | Number of volumes known to be published                                      |
 
@@ -86,13 +86,14 @@ Dates in the dataset do not always have day precision. Tsundoku handles them lik
 * **Year precision:** counts as published only once the year is over and the dataset marks it as published. It is never reported as the next release.
 * **No date:** the volume cannot be classified and is ignored.
 
-For a month-precision volume, **Next release** shows the first day of that month, which can be earlier than today when the month is the current one. The sensor attributes keep the original information:
+For a month-precision volume, **Next release** is `unavailable` rather than inventing a day. Its attributes keep the source precision and expose a localized month label (for example, `Novembre 2026` in Italian or `November 2026` in English). Month names and language labels are stored in JSON locale catalogs under `custom_components/tsundoku/locales/`, so contributors can add another locale without changing Python code. The sensor attributes are:
 
 | Attribute                | Description                                              |
 | ------------------------ | -------------------------------------------------------- |
 | `release_date_precision` | `day`, `month` or `year`                                 |
 | `release_date_raw`       | The date as stored in the dataset (e.g. `2026-11`)       |
 | `release_date_type`      | Date status reported by the dataset (e.g. `projected`)   |
+| `release_date_display`   | Localized month and year when only month precision is known |
 
 Use these attributes in templates or automations when you need to tell an exact date from an approximate one.
 
@@ -105,7 +106,7 @@ No external account or API key is required.
 
 ## Troubleshooting
 
-* **Search finds nothing:** try a shorter title or an alias, and remove the country and language filters. Not every market is covered by the dataset.
+* **Search finds nothing:** try a shorter title or an alias, and clear the market/edition and language filters. Not every market is covered by the dataset.
 * **Database status shows an error:** the `last_error` attribute explains why. Press **Update database** to retry; the previous valid database stays in use meanwhile.
 * **Setup fails on first install:** the initial database download needs internet access. Home Assistant retries automatically.
 
