@@ -1,0 +1,48 @@
+{
+  "labels": {
+    "all_markets": "All markets / editions",
+    "all_languages": "All languages"
+  },
+  "months": [
+    "January",
+    "February",
+    "March",
+    "April",
+    "May",
+    "June",
+    "July",
+    "August",
+    "September",
+    "October",
+    "November",
+    "December"
+  ],
+  "languages": {
+    "en": "English",
+    "it": "Italian",
+    "ja": "Japanese",
+    "zh": "Chinese",
+    "ko": "Korean",
+    "fr": "French",
+    "de": "German",
+    "es": "Spanish",
+    "pt": "Portuguese",
+    "ru": "Russian",
+    "nl": "Dutch",
+    "pl": "Polish",
+    "sv": "Swedish",
+    "da": "Danish",
+    "fi": "Finnish",
+    "no": "Norwegian",
+    "cs": "Czech",
+    "hu": "Hungarian",
+    "tr": "Turkish",
+    "ar": "Arabic",
+    "th": "Thai",
+    "vi": "Vietnamese",
+    "id": "Indonesian",
+    "ms": "Malay",
+    "he": "Hebrew",
+    "uk": "Ukrainian"
+  }
+}

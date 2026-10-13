@@ -1,0 +1,48 @@
+{
+  "labels": {
+    "all_markets": "Tutti i mercati / le edizioni",
+    "all_languages": "Tutte le lingue"
+  },
+  "months": [
+    "Gennaio",
+    "Febbraio",
+    "Marzo",
+    "Aprile",
+    "Maggio",
+    "Giugno",
+    "Luglio",
+    "Agosto",
+    "Settembre",
+    "Ottobre",
+    "Novembre",
+    "Dicembre"
+  ],
+  "languages": {
+    "en": "Inglese",
+    "it": "Italiano",
+    "ja": "Giapponese",
+    "zh": "Cinese",
+    "ko": "Coreano",
+    "fr": "Francese",
+    "de": "Tedesco",
+    "es": "Spagnolo",
+    "pt": "Portoghese",
+    "ru": "Russo",
+    "nl": "Olandese",
+    "pl": "Polacco",
+    "sv": "Svedese",
+    "da": "Danese",
+    "fi": "Finlandese",
+    "no": "Norvegese",
+    "cs": "Ceco",
+    "hu": "Ungherese",
+    "tr": "Turco",
+    "ar": "Arabo",
+    "th": "Thailandese",
+    "vi": "Vietnamita",
+    "id": "Indonesiano",
+    "ms": "Malese",
+    "he": "Ebraico",
+    "uk": "Ucraino"
+  }
+}
