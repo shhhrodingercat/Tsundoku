@@ -1,15 +1,22 @@
 import logging
 from functools import partial
+from pathlib import Path
 from typing import Any
 
 import voluptuous as vol
 from homeassistant import config_entries
 from homeassistant.core import callback
-from homeassistant.helpers import aiohttp_client, device_registry, entity_registry, selector
+from homeassistant.helpers import (
+    aiohttp_client,
+    device_registry,
+    entity_registry,
+    selector,
+)
 
 from .const import DOMAIN
 from .database import MangaDatabase
 from .database_manager import DatabaseManager
+from .database_updater import DATABASE_FILENAME
 from .models import ReleaseLine
 
 _LOGGER = logging.getLogger(__name__)
@@ -26,10 +33,10 @@ class TsundokuConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
     @staticmethod
     @callback
     def async_get_options_flow(
-        config_entry: config_entries.ConfigEntry,
+        _config_entry: config_entries.ConfigEntry,
     ) -> config_entries.OptionsFlow:
         """Return the options flow for managing tracked manga."""
-        return TsundokuOptionsFlow(config_entry)
+        return TsundokuOptionsFlow()
 
     async def async_step_user(
         self,
@@ -147,6 +154,15 @@ class TsundokuOptionsFlow(config_entries.OptionsFlow):
     """Manage release lines without creating duplicate integration entries."""
 
     @property
+    def _database_path(self) -> Path:
+        """Return the active database path, even if setup has failed."""
+        runtime_data = getattr(self.config_entry, "runtime_data", None)
+        manager = getattr(runtime_data, "database_manager", None)
+        if manager is not None:
+            return manager.database_path
+        return Path(self.hass.config.path("tsundoku")) / DATABASE_FILENAME
+
+    @property
     def _tracked_ids(self) -> list[str]:
         return list(
             self.config_entry.options.get(
@@ -209,9 +225,11 @@ class TsundokuOptionsFlow(config_entries.OptionsFlow):
             )
 
         hass = self.hass
-        manager = self.config_entry.runtime_data.database_manager
         try:
-            database = MangaDatabase(manager.database_path)
+            database_path = self._database_path
+            if not database_path.is_file():
+                raise FileNotFoundError("Tsundoku metadata database is unavailable")
+            database = MangaDatabase(database_path)
             self._search_results = await hass.async_add_executor_job(
                 partial(
                     database.search_release_lines,
@@ -315,8 +333,11 @@ class TsundokuOptionsFlow(config_entries.OptionsFlow):
     async def _remove_schema(self) -> vol.Schema:
         """Build a selection form with labels for the currently tracked lines."""
         hass = self.hass
-        database = MangaDatabase(self.config_entry.runtime_data.database_manager.database_path)
         try:
+            database_path = self._database_path
+            if not database_path.is_file():
+                raise FileNotFoundError("Tsundoku metadata database is unavailable")
+            database = MangaDatabase(database_path)
             labels = await hass.async_add_executor_job(
                 _format_tracked_lines, database, self._tracked_ids
             )
@@ -349,9 +370,9 @@ def _remove_manga_registry_entries(
     entities = entity_registry.async_get(hass)
     devices = device_registry.async_get(hass)
     for entity in list(entities.entities.values()):
-        if (
-            entity.config_entry_id == config_entry.entry_id
-            and any(entity.unique_id.startswith(f"{tome_id}_") for tome_id in tracked_ids)
+        if entity.config_entry_id == config_entry.entry_id and any(
+            entity.unique_id.startswith(f"{tome_id}_")
+            for tome_id in tracked_ids
         ):
             entities.async_remove(entity.entity_id)
 
