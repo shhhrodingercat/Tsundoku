@@ -5,7 +5,7 @@ from typing import Any
 import voluptuous as vol
 from homeassistant import config_entries
 from homeassistant.core import callback
-from homeassistant.helpers import aiohttp_client, selector
+from homeassistant.helpers import aiohttp_client, device_registry, entity_registry, selector
 
 from .const import DOMAIN
 from .database import MangaDatabase
@@ -89,7 +89,7 @@ class TsundokuConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                     errors={"base": "select_at_least_one"},
                 )
             return self.async_create_entry(
-                title=f"{len(tome_ids)} manga",
+                title="Tsundoku",
                 data={"tome_ids": tome_ids},
             )
 
@@ -146,10 +146,6 @@ class TsundokuConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
 class TsundokuOptionsFlow(config_entries.OptionsFlow):
     """Manage release lines without creating duplicate integration entries."""
 
-    def __init__(self, config_entry: config_entries.ConfigEntry) -> None:
-        self.config_entry = config_entry
-        self._search_results: list[ReleaseLine] = []
-
     @property
     def _tracked_ids(self) -> list[str]:
         return list(
@@ -165,15 +161,18 @@ class TsundokuOptionsFlow(config_entries.OptionsFlow):
                 return await self.async_step_add_search()
             return await self.async_step_remove()
 
-        options = [{"value": "add", "label": "Add manga"}]
+        options = [{"value": "add"}]
         if self._tracked_ids:
-            options.append({"value": "remove", "label": "Remove manga"})
+            options.append({"value": "remove"})
         return self.async_show_form(
             step_id="init",
             data_schema=vol.Schema(
                 {
                     vol.Required("action", default="add"): selector.SelectSelector(
-                        selector.SelectSelectorConfig(options=options)
+                        selector.SelectSelectorConfig(
+                            options=options,
+                            translation_key="action",
+                        )
                     )
                 }
             ),
@@ -210,14 +209,8 @@ class TsundokuOptionsFlow(config_entries.OptionsFlow):
             )
 
         hass = self.hass
-        manager = DatabaseManager(
-            hass,
-            hass.config.path("tsundoku"),
-            aiohttp_client.async_get_clientsession(hass),
-        )
+        manager = self.config_entry.runtime_data.database_manager
         try:
-            if not await manager.updater.async_validate_database():
-                await manager.async_initialize()
             database = MangaDatabase(manager.database_path)
             self._search_results = await hass.async_add_executor_job(
                 partial(
@@ -290,6 +283,9 @@ class TsundokuOptionsFlow(config_entries.OptionsFlow):
                     errors={"base": "select_at_least_one"},
                 )
             updated = [tome_id for tome_id in tracked_ids if tome_id not in selected]
+            _remove_manga_registry_entries(
+                self.hass, self.config_entry, tracked_ids=set(selected)
+            )
             return self.async_create_entry(title="", data={"tome_ids": updated})
 
         return self.async_show_form(
@@ -319,9 +315,7 @@ class TsundokuOptionsFlow(config_entries.OptionsFlow):
     async def _remove_schema(self) -> vol.Schema:
         """Build a selection form with labels for the currently tracked lines."""
         hass = self.hass
-        database = MangaDatabase(
-            hass.config.path("tsundoku", "manga-metadata.sqlite")
-        )
+        database = MangaDatabase(self.config_entry.runtime_data.database_manager.database_path)
         try:
             labels = await hass.async_add_executor_job(
                 _format_tracked_lines, database, self._tracked_ids
@@ -343,6 +337,32 @@ class TsundokuOptionsFlow(config_entries.OptionsFlow):
                 )
             }
         )
+
+
+def _remove_manga_registry_entries(
+    hass, config_entry: config_entries.ConfigEntry, tracked_ids: set[str]
+) -> None:
+    """Remove registry entities and devices for explicitly untracked manga."""
+    if not tracked_ids:
+        return
+
+    entities = entity_registry.async_get(hass)
+    devices = device_registry.async_get(hass)
+    for entity in list(entities.entities.values()):
+        if (
+            entity.config_entry_id == config_entry.entry_id
+            and any(entity.unique_id.startswith(f"{tome_id}_") for tome_id in tracked_ids)
+        ):
+            entities.async_remove(entity.entity_id)
+
+    for device in list(devices.devices.values()):
+        if any((DOMAIN, tome_id) in device.identifiers for tome_id in tracked_ids):
+            # Only remove a device after its Tsundoku entities have been removed.
+            if not any(
+                entity.device_id == device.id
+                for entity in entities.entities.values()
+            ):
+                devices.async_remove_device(device.id)
 
 
 def _format_tracked_lines(
