@@ -102,7 +102,9 @@ async def async_setup_entry(
     entry.async_on_unload(entry.add_update_listener(async_reload_entry))
 
     # Remote update check runs after setup so GitHub latency cannot delay loading.
-    hass.async_create_task(async_update_database())
+    entry.async_create_background_task(
+        hass, async_update_database(), "Tsundoku database update"
+    )
     return True
 
 
