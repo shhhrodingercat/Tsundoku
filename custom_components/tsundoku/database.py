@@ -17,6 +17,36 @@ class MangaDatabase:
         encoded_path = quote(str(self.path.resolve()), safe="/:")
         return sqlite3.connect(f"file:{encoded_path}?mode=ro", uri=True)
 
+    def get_search_filter_options(self) -> tuple[list[str], list[str]]:
+        """Return market/edition and language codes present in searchable manga."""
+        with closing(self._connect()) as conn:
+            countries = conn.execute(
+                """
+                SELECT DISTINCT country
+                FROM series
+                WHERE medium = 'manga'
+                  AND tome_id IS NOT NULL
+                  AND country IS NOT NULL
+                  AND TRIM(country) != ''
+                ORDER BY country COLLATE NOCASE
+                """
+            ).fetchall()
+            languages = conn.execute(
+                """
+                SELECT DISTINCT language
+                FROM series
+                WHERE medium = 'manga'
+                  AND tome_id IS NOT NULL
+                  AND language IS NOT NULL
+                  AND TRIM(language) != ''
+                ORDER BY language COLLATE NOCASE
+                """
+            ).fetchall()
+        return (
+            [row[0] for row in countries],
+            [row[0] for row in languages],
+        )
+
     def search_release_lines(
         self,
         query: str,
