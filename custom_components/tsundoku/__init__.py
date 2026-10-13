@@ -1,5 +1,4 @@
 import logging
-from collections.abc import Callable
 from dataclasses import dataclass
 from datetime import timedelta
 
@@ -9,7 +8,10 @@ from homeassistant.core import HomeAssistant
 from homeassistant.exceptions import ConfigEntryNotReady
 from homeassistant.helpers import aiohttp_client
 from homeassistant.helpers import config_validation as cv
-from homeassistant.helpers.event import async_track_time_interval
+from homeassistant.helpers.event import (
+    async_track_time_change,
+    async_track_time_interval,
+)
 
 from .const import DOMAIN
 from .coordinator import TsundokuCoordinator
@@ -26,10 +28,10 @@ CONFIG_SCHEMA = cv.config_entry_only_config_schema(DOMAIN)
 @dataclass
 class TsundokuRuntimeData:
     """Runtime data for Tsundoku."""
+
     database_manager: DatabaseManager
     database_coordinator: TsundokuDatabaseCoordinator
     coordinator: TsundokuCoordinator
-    remove_database_update_listener: Callable[[], None]
 
 
 async def async_setup(hass: HomeAssistant, config: dict) -> bool:
@@ -49,7 +51,6 @@ async def async_setup_entry(
         session,
     )
 
-    database_existed = await database_manager.updater.async_validate_database()
     try:
         await database_manager.async_initialize()
     except Exception as err:
@@ -57,19 +58,8 @@ async def async_setup_entry(
             f"Could not initialize Tsundoku database: {err}"
         ) from err
 
-    # Check for updates at startup only when a valid local database existed.
-    if database_existed:
-        try:
-            await database_manager.async_check_for_update()
-        except Exception:
-            _LOGGER.exception(
-                "Could not check for Tsundoku database updates during startup"
-            )
-
     database_coordinator = TsundokuDatabaseCoordinator(
-        hass,
-        entry,
-        database_manager,
+        hass, entry, database_manager
     )
     await database_coordinator.async_config_entry_first_refresh()
 
@@ -77,8 +67,14 @@ async def async_setup_entry(
     coordinator = TsundokuCoordinator(hass, entry, database)
     await coordinator.async_config_entry_first_refresh()
 
-    async def async_update_database(_now) -> None:
-        """Check for database updates and notify the coordinators."""
+    entry.runtime_data = TsundokuRuntimeData(
+        database_manager=database_manager,
+        database_coordinator=database_coordinator,
+        coordinator=coordinator,
+    )
+
+    async def async_update_database(_now=None) -> None:
+        """Check for metadata updates without blocking integration setup."""
         try:
             updated = await database_manager.async_check_for_update()
             if updated:
@@ -88,20 +84,25 @@ async def async_setup_entry(
         finally:
             database_coordinator.refresh_status()
 
+    async def async_refresh_manga_at_midnight(_now) -> None:
+        """Recalculate date-based sensors after the local date changes."""
+        await coordinator.async_request_refresh()
+
     remove_database_update_listener = async_track_time_interval(
-        hass,
-        async_update_database,
-        timedelta(hours=6),
+        hass, async_update_database, timedelta(hours=6)
     )
-    entry.runtime_data = TsundokuRuntimeData(
-        database_manager=database_manager,
-        database_coordinator=database_coordinator,
-        coordinator=coordinator,
-        remove_database_update_listener=remove_database_update_listener,
+    entry.async_on_unload(remove_database_update_listener)
+
+    remove_midnight_listener = async_track_time_change(
+        hass, async_refresh_manga_at_midnight, hour=0, minute=0, second=5
     )
+    entry.async_on_unload(remove_midnight_listener)
 
     await hass.config_entries.async_forward_entry_setups(entry, PLATFORMS)
     entry.async_on_unload(entry.add_update_listener(async_reload_entry))
+
+    # Remote update check runs after setup so GitHub latency cannot delay loading.
+    hass.async_create_task(async_update_database())
     return True
 
 
@@ -118,7 +119,4 @@ async def async_unload_entry(
     entry: config_entries.ConfigEntry,
 ) -> bool:
     """Unload Tsundoku."""
-    unloaded = await hass.config_entries.async_unload_platforms(entry, PLATFORMS)
-    if unloaded:
-        entry.runtime_data.remove_database_update_listener()
-    return unloaded
+    return await hass.config_entries.async_unload_platforms(entry, PLATFORMS)
