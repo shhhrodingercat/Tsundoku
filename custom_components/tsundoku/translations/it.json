@@ -97,19 +97,19 @@
         }
       }
     },
-    "selector": {
-      "action": {
-        "options": {
-          "add": "Aggiungi manga",
-          "remove": "Rimuovi manga"
-        }
-      }
-    },
     "error": {
       "empty_query": "Inserisci il titolo di un manga.",
       "no_results": "Nessuna linea editoriale trovata. Prova un altro titolo o rimuovi un filtro.",
       "cannot_connect": "Impossibile preparare il database locale. Controlla la connessione e i log dell’integrazione, poi riprova.",
       "select_at_least_one": "Seleziona almeno una linea editoriale."
+    }
+  },
+  "selector": {
+    "action": {
+      "options": {
+        "add": "Aggiungi manga",
+        "remove": "Rimuovi manga"
+      }
     }
   }
 }
