@@ -1,4 +1,33 @@
 {
+  "config": {
+    "step": {
+      "user": {
+        "title": "Segui le uscite dei manga",
+        "description": "Cerca nel database locale e scegli le linee editoriali da seguire.",
+        "data": {
+          "query": "Titolo del manga",
+          "country": "Codice paese del mercato (facoltativo)",
+          "language": "Codice lingua (facoltativo)"
+        }
+      },
+      "select": {
+        "title": "Seleziona le linee editoriali",
+        "description": "Paesi, lingue ed editori diversi possono avere linee editoriali separate.",
+        "data": {
+          "tome_ids": "Linee editoriali da seguire"
+        }
+      }
+    },
+    "error": {
+      "empty_query": "Inserisci il titolo di un manga.",
+      "no_results": "Nessuna linea editoriale trovata. Prova un altro titolo o rimuovi un filtro.",
+      "cannot_connect": "Impossibile preparare il database locale. Controlla la connessione e i log dell'integrazione, poi riprova.",
+      "select_at_least_one": "Seleziona almeno una linea editoriale."
+    },
+    "abort": {
+      "already_configured": "Tsundoku è già configurato. Usa le opzioni per aggiungere o rimuovere manga."
+    }
+  },
   "entity": {
     "sensor": {
       "next_volume": {
@@ -33,6 +62,54 @@
       "update_database": {
         "name": "Aggiorna database"
       }
+    }
+  },
+  "options": {
+    "step": {
+      "init": {
+        "title": "Gestisci i manga seguiti",
+        "description": "Aggiungi o rimuovi linee editoriali.",
+        "data": {
+          "action": "Azione"
+        }
+      },
+      "add_search": {
+        "title": "Cerca un manga da aggiungere",
+        "description": "Cerca un’altra linea editoriale da seguire.",
+        "data": {
+          "query": "Titolo del manga",
+          "country": "Codice paese del mercato (facoltativo)",
+          "language": "Codice lingua (facoltativo)"
+        }
+      },
+      "add_select": {
+        "title": "Seleziona i manga da aggiungere",
+        "description": "Seleziona una o più linee editoriali da seguire.",
+        "data": {
+          "tome_ids": "Linee editoriali da seguire"
+        }
+      },
+      "remove": {
+        "title": "Rimuovi manga seguiti",
+        "description": "Seleziona le linee editoriali che non vuoi più seguire.",
+        "data": {
+          "tome_ids": "Linee editoriali da seguire"
+        }
+      }
+    },
+    "selector": {
+      "action": {
+        "options": {
+          "add": "Aggiungi manga",
+          "remove": "Rimuovi manga"
+        }
+      }
+    },
+    "error": {
+      "empty_query": "Inserisci il titolo di un manga.",
+      "no_results": "Nessuna linea editoriale trovata. Prova un altro titolo o rimuovi un filtro.",
+      "cannot_connect": "Impossibile preparare il database locale. Controlla la connessione e i log dell’integrazione, poi riprova.",
+      "select_at_least_one": "Seleziona almeno una linea editoriale."
     }
   }
 }
