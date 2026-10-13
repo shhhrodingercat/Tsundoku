@@ -6,20 +6,14 @@ from .models import TrackedReleaseLine
 
 
 class TsundokuEntity(CoordinatorEntity[TsundokuCoordinator]):
-    """Base entity for Tsundoku manga release lines."""
+    """Base class for manga release-line entities."""
 
     _attr_has_entity_name = True
 
-    def __init__(
-        self,
-        coordinator: TsundokuCoordinator,
-        tome_id: str,
-    ) -> None:
+    def __init__(self, coordinator: TsundokuCoordinator, tome_id: str) -> None:
         super().__init__(coordinator)
-
         self.tome_id = tome_id
         tracked = self._tracked
-
         self._attr_unique_id = f"{tome_id}_{self._entity_suffix}"
         self._attr_device_info = {
             "identifiers": {(DOMAIN, tome_id)},
@@ -27,6 +21,11 @@ class TsundokuEntity(CoordinatorEntity[TsundokuCoordinator]):
             "manufacturer": "Tsundoku",
             "model": "Manga release line",
         }
+
+    @property
+    def available(self) -> bool:
+        """Become unavailable if the selected line disappears from the DB."""
+        return super().available and self.tome_id in self.coordinator.data
 
     @property
     def _tracked(self) -> TrackedReleaseLine:
