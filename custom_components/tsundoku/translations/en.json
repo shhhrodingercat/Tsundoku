@@ -1,4 +1,33 @@
 {
+  "config": {
+    "step": {
+      "user": {
+        "title": "Track manga releases",
+        "description": "Search the local manga metadata database and choose the release lines to track.",
+        "data": {
+          "query": "Manga title",
+          "country": "Market country code (optional)",
+          "language": "Language code (optional)"
+        }
+      },
+      "select": {
+        "title": "Select release lines",
+        "description": "Different countries, languages and publishers may have separate release lines.",
+        "data": {
+          "tome_ids": "Release lines to track"
+        }
+      }
+    },
+    "error": {
+      "empty_query": "Enter a manga title.",
+      "no_results": "No matching release lines were found. Try another title or remove a filter.",
+      "cannot_connect": "The local database could not be prepared. Check the network connection and integration logs, then try again.",
+      "select_at_least_one": "Select at least one release line."
+    },
+    "abort": {
+      "already_configured": "Tsundoku is already configured. Use its options to add or remove manga."
+    }
+  },
   "entity": {
     "sensor": {
       "next_volume": {
@@ -33,6 +62,54 @@
       "update_database": {
         "name": "Update database"
       }
+    }
+  },
+  "options": {
+    "step": {
+      "init": {
+        "title": "Manage tracked manga",
+        "description": "Add or remove manga release lines.",
+        "data": {
+          "action": "Action"
+        }
+      },
+      "add_search": {
+        "title": "Search for manga to add",
+        "description": "Search for another release line to follow.",
+        "data": {
+          "query": "Manga title",
+          "country": "Market country code (optional)",
+          "language": "Language code (optional)"
+        }
+      },
+      "add_select": {
+        "title": "Select manga to add",
+        "description": "Select one or more release lines to add to tracking.",
+        "data": {
+          "tome_ids": "Release lines to track"
+        }
+      },
+      "remove": {
+        "title": "Remove tracked manga",
+        "description": "Select the release lines to stop tracking.",
+        "data": {
+          "tome_ids": "Release lines to track"
+        }
+      }
+    },
+    "selector": {
+      "action": {
+        "options": {
+          "add": "Add manga",
+          "remove": "Remove manga"
+        }
+      }
+    },
+    "error": {
+      "empty_query": "Enter a manga title.",
+      "no_results": "No matching release lines were found. Try another title or remove a filter.",
+      "cannot_connect": "The local database could not be prepared. Check the network connection and integration logs, then try again.",
+      "select_at_least_one": "Select at least one release line."
     }
   }
 }
