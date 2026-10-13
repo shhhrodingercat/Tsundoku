@@ -24,6 +24,7 @@ class Volume:
     title: str | None
     release_date: date | None
     release_date_precision: str | None
+    release_date_raw: str | None
     release_date_type: str | None
     isbn13: str | None
     tome_id: str | None
