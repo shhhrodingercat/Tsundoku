@@ -1,6 +1,7 @@
 import logging
 from dataclasses import dataclass
 from datetime import timedelta
+from typing import Any
 
 from homeassistant import config_entries
 from homeassistant.const import Platform
@@ -18,6 +19,7 @@ from .coordinator import TsundokuCoordinator
 from .database import MangaDatabase
 from .database_coordinator import TsundokuDatabaseCoordinator
 from .database_manager import DatabaseManager
+from .localization import load_locale_catalog
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -32,6 +34,7 @@ class TsundokuRuntimeData:
     database_manager: DatabaseManager
     database_coordinator: TsundokuDatabaseCoordinator
     coordinator: TsundokuCoordinator
+    locale_catalog: dict[str, Any]
 
 
 async def async_setup(hass: HomeAssistant, config: dict) -> bool:
@@ -58,6 +61,11 @@ async def async_setup_entry(
             f"Could not initialize Tsundoku database: {err}"
         ) from err
 
+    # Load display translations off the event loop and retain them in memory.
+    locale_catalog = await hass.async_add_executor_job(
+        load_locale_catalog, hass.config.language
+    )
+
     database_coordinator = TsundokuDatabaseCoordinator(
         hass, entry, database_manager
     )
@@ -71,6 +79,7 @@ async def async_setup_entry(
         database_manager=database_manager,
         database_coordinator=database_coordinator,
         coordinator=coordinator,
+        locale_catalog=locale_catalog,
     )
 
     async def async_update_database(_now=None) -> None:
