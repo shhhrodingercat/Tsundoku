@@ -18,8 +18,51 @@ from .database import MangaDatabase
 from .database_manager import DatabaseManager
 from .database_updater import DATABASE_FILENAME
 from .models import ReleaseLine
+from .localization import load_locale_catalog
 
 _LOGGER = logging.getLogger(__name__)
+
+
+def _search_schema(
+    countries: list[str], languages: list[str], catalog: dict[str, Any]
+) -> vol.Schema:
+    """Build a search form with choices backed by the local database."""
+    labels = catalog.get("labels", {})
+    language_names = catalog.get("languages", {})
+    country_options = [
+        {
+            "value": "",
+            "label": labels.get("all_markets", "All markets / editions"),
+        }
+    ]
+    country_options.extend({"value": code, "label": code} for code in countries)
+    language_options = [
+        {"value": "", "label": labels.get("all_languages", "All languages")}
+    ]
+    language_options.extend(
+        {
+            "value": code,
+            "label": f"{code} — {language_names.get(code.lower(), code)}",
+        }
+        for code in languages
+    )
+    return vol.Schema(
+        {
+            vol.Required("query"): str,
+            vol.Optional("country", default=""): selector.SelectSelector(
+                selector.SelectSelectorConfig(
+                    options=country_options,
+                    mode=selector.SelectSelectorMode.DROPDOWN,
+                )
+            ),
+            vol.Optional("language", default=""): selector.SelectSelector(
+                selector.SelectSelectorConfig(
+                    options=language_options,
+                    mode=selector.SelectSelectorMode.DROPDOWN,
+                )
+            ),
+        }
+    )
 
 
 class TsundokuConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
@@ -29,6 +72,8 @@ class TsundokuConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
 
     def __init__(self) -> None:
         self._search_results: list[ReleaseLine] = []
+        self._countries: list[str] = []
+        self._languages: list[str] = []
 
     @staticmethod
     @callback
@@ -47,22 +92,34 @@ class TsundokuConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
         self._abort_if_unique_id_configured()
         if self.hass.config_entries.async_entries(DOMAIN):
             return self.async_abort(reason="already_configured")
-        if user_input is None:
-            return self._show_search_form()
-
-        query = user_input.get("query", "").strip()
-        if not query:
-            return self._show_search_form(errors={"query": "empty_query"})
-
         manager = DatabaseManager(
             self.hass,
             self.hass.config.path("tsundoku"),
             aiohttp_client.async_get_clientsession(self.hass),
         )
 
+        if user_input is None:
+            try:
+                if not await manager.updater.async_validate_database():
+                    await manager.async_initialize()
+                database = MangaDatabase(manager.database_path)
+                (
+                    self._countries,
+                    self._languages,
+                ) = await self.hass.async_add_executor_job(
+                    database.get_search_filter_options
+                )
+            except Exception:
+                _LOGGER.exception("Could not load Tsundoku search filters")
+                return self._show_search_form(errors={"base": "cannot_connect"})
+            return self._show_search_form()
+
+        query = user_input.get("query", "").strip()
+        if not query:
+            return self._show_search_form(errors={"query": "empty_query"})
+
         try:
-            # Initialize only when the database is missing or invalid. Avoid
-            # re-hashing the full database on every search submission.
+            # Recheck only when the database is missing or invalid.
             if not await manager.updater.async_validate_database():
                 await manager.async_initialize()
             database = MangaDatabase(manager.database_path)
@@ -135,23 +192,22 @@ class TsundokuConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
         return " · ".join(parts)
 
     def _show_search_form(self, errors: dict[str, str] | None = None):
-        """Show the manga search form."""
-        schema = vol.Schema(
-            {
-                vol.Required("query"): str,
-                vol.Optional("country", default=""): str,
-                vol.Optional("language", default=""): str,
-            }
-        )
+        """Show the manga search form with database-backed filter choices."""
+        catalog = load_locale_catalog(self.hass.config.language)
         return self.async_show_form(
             step_id="user",
-            data_schema=schema,
+            data_schema=_search_schema(self._countries, self._languages, catalog),
             errors=errors or {},
         )
 
 
 class TsundokuOptionsFlow(config_entries.OptionsFlow):
     """Manage release lines without creating duplicate integration entries."""
+
+    def __init__(self) -> None:
+        self._search_results: list[ReleaseLine] = []
+        self._countries: list[str] = []
+        self._languages: list[str] = []
 
     @property
     def _database_path(self) -> Path:
@@ -199,38 +255,32 @@ class TsundokuOptionsFlow(config_entries.OptionsFlow):
     ):
         """Search for additional manga release lines."""
         if user_input is None:
-            return self.async_show_form(
-                step_id="add_search",
-                data_schema=vol.Schema(
-                    {
-                        vol.Required("query"): str,
-                        vol.Optional("country", default=""): str,
-                        vol.Optional("language", default=""): str,
-                    }
-                ),
-            )
+            try:
+                database_path = self._database_path
+                if not database_path.is_file():
+                    raise FileNotFoundError("Tsundoku metadata database is unavailable")
+                database = MangaDatabase(database_path)
+                (
+                    self._countries,
+                    self._languages,
+                ) = await self.hass.async_add_executor_job(
+                    database.get_search_filter_options
+                )
+            except Exception:
+                _LOGGER.exception("Could not load Tsundoku search filters")
+                return self._show_add_search_form(errors={"base": "cannot_connect"})
+            return self._show_add_search_form()
 
         query = user_input.get("query", "").strip()
         if not query:
-            return self.async_show_form(
-                step_id="add_search",
-                data_schema=vol.Schema(
-                    {
-                        vol.Required("query"): str,
-                        vol.Optional("country", default=""): str,
-                        vol.Optional("language", default=""): str,
-                    }
-                ),
-                errors={"query": "empty_query"},
-            )
+            return self._show_add_search_form(errors={"query": "empty_query"})
 
-        hass = self.hass
         try:
             database_path = self._database_path
             if not database_path.is_file():
                 raise FileNotFoundError("Tsundoku metadata database is unavailable")
             database = MangaDatabase(database_path)
-            self._search_results = await hass.async_add_executor_job(
+            self._search_results = await self.hass.async_add_executor_job(
                 partial(
                     database.search_release_lines,
                     query,
@@ -240,31 +290,22 @@ class TsundokuOptionsFlow(config_entries.OptionsFlow):
             )
         except Exception:
             _LOGGER.exception("Could not search the Tsundoku database")
-            return self.async_show_form(
-                step_id="add_search",
-                data_schema=vol.Schema(
-                    {
-                        vol.Required("query"): str,
-                        vol.Optional("country", default=""): str,
-                        vol.Optional("language", default=""): str,
-                    }
-                ),
-                errors={"base": "cannot_connect"},
-            )
+            return self._show_add_search_form(errors={"base": "cannot_connect"})
 
         if not self._search_results:
-            return self.async_show_form(
-                step_id="add_search",
-                data_schema=vol.Schema(
-                    {
-                        vol.Required("query"): str,
-                        vol.Optional("country", default=""): str,
-                        vol.Optional("language", default=""): str,
-                    }
-                ),
-                errors={"query": "no_results"},
-            )
+            return self._show_add_search_form(errors={"query": "no_results"})
         return await self.async_step_add_select()
+
+    def _show_add_search_form(
+        self, errors: dict[str, str] | None = None
+    ):
+        """Show the options-flow search form with translated filter choices."""
+        catalog = load_locale_catalog(self.hass.config.language)
+        return self.async_show_form(
+            step_id="add_search",
+            data_schema=_search_schema(self._countries, self._languages, catalog),
+            errors=errors or {},
+        )
 
     async def async_step_add_select(
         self, user_input: dict[str, Any] | None = None
