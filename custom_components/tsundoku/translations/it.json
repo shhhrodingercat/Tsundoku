@@ -3,11 +3,11 @@
     "step": {
       "user": {
         "title": "Segui le uscite dei manga",
-        "description": "Cerca nel database locale e scegli le linee editoriali da seguire.",
+        "description": "Cerca nel database locale e scegli le linee editoriali da seguire. I filtri mostrano i valori disponibili nel database.",
         "data": {
           "query": "Titolo del manga",
-          "country": "Codice paese del mercato (facoltativo)",
-          "language": "Codice lingua (facoltativo)"
+          "country": "Mercato / edizione (facoltativo)",
+          "language": "Lingua (facoltativo)"
         }
       },
       "select": {
@@ -75,11 +75,11 @@
       },
       "add_search": {
         "title": "Cerca un manga da aggiungere",
-        "description": "Cerca un’altra linea editoriale da seguire.",
+        "description": "Cerca nel database locale e scegli le linee editoriali da seguire. I filtri mostrano i valori disponibili nel database.",
         "data": {
           "query": "Titolo del manga",
-          "country": "Codice paese del mercato (facoltativo)",
-          "language": "Codice lingua (facoltativo)"
+          "country": "Mercato / edizione (facoltativo)",
+          "language": "Lingua (facoltativo)"
         }
       },
       "add_select": {
