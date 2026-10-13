@@ -2,6 +2,7 @@ import sqlite3
 from contextlib import closing
 from datetime import date
 from pathlib import Path
+from urllib.parse import quote
 
 from .models import ReleaseLine, Volume
 
@@ -13,10 +14,8 @@ class MangaDatabase:
         self.path = Path(path)
 
     def _connect(self) -> sqlite3.Connection:
-        return sqlite3.connect(
-            f"file:{self.path.as_posix()}?mode=ro",
-            uri=True,
-        )
+        encoded_path = quote(str(self.path.resolve()), safe="/:")
+        return sqlite3.connect(f"file:{encoded_path}?mode=ro", uri=True)
 
     def search_release_lines(
         self,
@@ -31,8 +30,10 @@ class MangaDatabase:
         if not query:
             return []
 
-        pattern = f"%{query}%"
-        prefix = f"{query}%"
+        # Treat user input literally: '%' and '_' are SQL LIKE wildcards.
+        escaped_query = query.replace("!", "!!").replace("%", "!%").replace("_", "!_")
+        pattern = f"%{escaped_query}%"
+        prefix = f"{escaped_query}%"
         sql = """
             SELECT DISTINCT
                 s.gcd_series_id,
@@ -51,27 +52,27 @@ class MangaDatabase:
             WHERE s.medium = 'manga'
               AND s.tome_id IS NOT NULL
               AND (
-                    s.name LIKE ?
-                    OR s.local_name LIKE ?
-                    OR a.alias LIKE ?
+                    s.name LIKE ? ESCAPE '!'
+                    OR s.local_name LIKE ? ESCAPE '!'
+                    OR a.alias LIKE ? ESCAPE '!'
               )
         """
         params: list[object] = [pattern, pattern, pattern]
 
         if country:
-            sql += " AND s.country = ?"
-            params.append(country)
+            sql += " AND UPPER(s.country) = UPPER(?)"
+            params.append(country.strip())
         if language:
-            sql += " AND s.language = ?"
-            params.append(language)
+            sql += " AND LOWER(s.language) = LOWER(?)"
+            params.append(language.strip())
 
         sql += """
             ORDER BY
                 CASE
                     WHEN lower(s.name) = lower(?) THEN 0
-                    WHEN lower(s.name) LIKE lower(?) THEN 1
+                    WHEN lower(s.name) LIKE lower(?) ESCAPE '!' THEN 1
                     WHEN lower(s.local_name) = lower(?) THEN 2
-                    WHEN lower(s.local_name) LIKE lower(?) THEN 3
+                    WHEN lower(s.local_name) LIKE lower(?) ESCAPE '!' THEN 3
                     ELSE 4
                 END,
                 s.name COLLATE NOCASE,
