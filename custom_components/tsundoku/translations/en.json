@@ -3,11 +3,11 @@
     "step": {
       "user": {
         "title": "Track manga releases",
-        "description": "Search the local manga metadata database and choose the release lines to track.",
+        "description": "Search the local manga metadata database and choose the release lines to track. Filters are populated from values available in the database.",
         "data": {
           "query": "Manga title",
-          "country": "Market country code (optional)",
-          "language": "Language code (optional)"
+          "country": "Market / edition (optional)",
+          "language": "Language (optional)"
         }
       },
       "select": {
@@ -75,11 +75,11 @@
       },
       "add_search": {
         "title": "Search for manga to add",
-        "description": "Search for another release line to follow.",
+        "description": "Search the local manga metadata database and choose the release lines to track. Filters are populated from values available in the database.",
         "data": {
           "query": "Manga title",
-          "country": "Market country code (optional)",
-          "language": "Language code (optional)"
+          "country": "Market / edition (optional)",
+          "language": "Language (optional)"
         }
       },
       "add_select": {
