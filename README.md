@@ -2,73 +2,117 @@
 
 **Tsundoku** is a custom integration for [Home Assistant](https://www.home-assistant.io/) that tracks manga volume releases.
 
-It helps you keep track of the latest published volume and upcoming releases for the manga editions you follow, directly from Home Assistant.
+It shows the latest published volume and the next known release for each manga edition you follow, directly in Home Assistant.
 
 ## Features
 
-* **Track manga editions:** each tracked release line is represented as a separate Home Assistant device.
-* **Search manga:** find editions using their titles and aliases.
-* **Upcoming releases:** see the next known volume number and release date.
-* **Latest releases:** see the latest volume whose release date has passed.
-* **Published volume count:** track the number of volumes with a release date up to the current date.
-* **Automatic metadata updates:** download and maintain a local copy of the manga metadata database.
-* **No API key required:** metadata is sourced from the OpenTome / Mangarr dataset.
-
-Different editions of the same manga, such as Japanese and English releases, can be tracked independently.
+* **Track manga editions:** each edition is a separate Home Assistant device, so the Japanese and English releases of the same series are tracked independently.
+* **Search by title or alias:** find editions by name, local name or alias, optionally filtered by country and language.
+* **Next release:** next known volume number and its release date.
+* **Latest release:** latest volume that has already been published.
+* **Published volume count:** number of volumes already published.
+* **Manage tracked manga from the UI:** add or remove editions at any time from the integration options, without recreating the integration.
+* **Automatic metadata updates:** a local copy of the metadata database is downloaded, validated and kept up to date in the background.
+* **Diagnostics and manual update:** database status sensors and an **Update database** button.
+* **No API key required.**
 
 ## Data source
 
-Tsundoku uses the SQLite metadata database published by [OpenTome / Mangarr](https://github.com/opentomedb/mangarr-metadata).
+Metadata comes from the SQLite database published by [OpenTome / Mangarr](https://github.com/opentomedb/mangarr-metadata). Please refer to the upstream repository for its license and attribution requirements.
 
-The database is downloaded locally and updated when a newer release is available. The integration checks for updates at startup and periodically thereafter.
+How the database is handled:
 
-The local database is validated before a downloaded version replaces the existing one. This allows Tsundoku to retain its current database if a download fails or the new file is invalid.
+* It is downloaded on first setup and stored locally in `<config>/tsundoku/`.
+* Tsundoku checks for a newer release shortly after startup (in the background, so it never delays Home Assistant) and then every 6 hours. You can also trigger a check with the **Update database** button.
+* A downloaded file replaces the current database only after it passes validation (SQLite integrity check and expected schema). If a download fails or the file is invalid, the current database is kept.
+* Release dates are re-evaluated every day shortly after midnight, so the sensors change on the right day even when the database has not been updated.
 
-Manga metadata and release dates depend on the upstream dataset and may be incomplete or change over time.
+Metadata and release dates depend on the upstream dataset and may be incomplete or change over time. Coverage varies by market: at the time of writing the dataset contains very few Italian editions, so check that the edition you want is searchable before relying on it.
 
 ## Installation
 
 ### HACS
 
-Tsundoku is intended to be distributed as a custom HACS integration.
-
 1. Open HACS in Home Assistant.
 2. Add this repository as a custom repository, selecting **Integration** as the category.
-3. Install Tsundoku.
-4. Restart Home Assistant.
-5. Add Tsundoku through **Settings → Devices & services → Add integration**.
+3. Install Tsundoku and restart Home Assistant.
+4. Add Tsundoku from **Settings → Devices & services → Add integration**.
 
 ### Manual installation
 
-1. Copy the `custom_components/tsundoku` directory into your Home Assistant configuration's `custom_components` directory.
+1. Copy the `custom_components/tsundoku` directory into the `custom_components` directory of your Home Assistant configuration.
 2. Restart Home Assistant.
-3. Add Tsundoku through **Settings → Devices & services → Add integration**.
+3. Add Tsundoku from **Settings → Devices & services → Add integration**.
 
-## Sensors
+## Setup
 
-Each tracked manga edition exposes the following sensors:
+1. Add the integration and type a title (or part of it) in the search form. Optionally filter by **country** and **language**; both filters are case-insensitive. The values used by the dataset are short codes such as `JP`, `EN`, `DE` or `FR`.
+2. Select one or more editions to track.
 
-| Sensor        | Description                                                        |
-| ------------- | ------------------------------------------------------------------ |
-| Next volume   | Number of the next volume with a known future release date         |
-| Next release  | Release date of the next known upcoming volume                     |
-| Latest volume | Number of the latest volume with a release date on or before today |
-| Volumes       | Number of volumes with a known release date on or before today     |
+Only one Tsundoku instance can be configured. To change your list later, open the integration and choose **Configure**: you can add new editions through a new search or remove existing ones. Removing an edition also removes its device and entities.
 
-If a release date is unavailable, the corresponding volume cannot be reliably classified as upcoming or already released.
+## Entities
+
+### Per tracked edition
+
+Each edition is a device named after the title, country, language and publisher, with these sensors:
+
+| Sensor        | Description                                                                 |
+| ------------- | --------------------------------------------------------------------------- |
+| Next volume   | Number of the next volume with a known upcoming release                      |
+| Next release  | Release date of that volume                                                  |
+| Latest volume | Number of the latest volume known to be published                            |
+| Volumes       | Number of volumes known to be published                                      |
+
+### Database (diagnostic)
+
+| Entity          | Description                                                               |
+| --------------- | ------------------------------------------------------------------------- |
+| Database status | Current state of the local database (up to date, updating, error, ...)    |
+| Database version| Installed upstream release                                                |
+| Database updated| When the database was last updated                                        |
+| Last check      | When the last update check ran                                            |
+| Database size   | Size of the local database file                                           |
+| Update database | Button that checks for and installs a newer database immediately          |
+
+The status sensor also exposes `checksum` and, after a failure, `last_error` as attributes.
+
+## How release dates are interpreted
+
+Dates in the dataset do not always have day precision. Tsundoku handles them like this:
+
+* **Full dates** are compared directly with today: a volume dated today or earlier is published, a later one is upcoming.
+* **Month precision** (for example `2026-11`): the volume counts as published only once that month is over and the dataset marks it as published. It can be reported as *next* while its month is current or in the future, unless it is already marked as published. A volume that is marked as published and falls in the current month is therefore neither "latest" nor "next" until the month ends.
+* **Year precision:** counts as published only once the year is over and the dataset marks it as published. It is never reported as the next release.
+* **No date:** the volume cannot be classified and is ignored.
+
+For a month-precision volume, **Next release** shows the first day of that month, which can be earlier than today when the month is the current one. The sensor attributes keep the original information:
+
+| Attribute                | Description                                              |
+| ------------------------ | -------------------------------------------------------- |
+| `release_date_precision` | `day`, `month` or `year`                                 |
+| `release_date_raw`       | The date as stored in the dataset (e.g. `2026-11`)       |
+| `release_date_type`      | Date status reported by the dataset (e.g. `projected`)   |
+
+Use these attributes in templates or automations when you need to tell an exact date from an approximate one.
 
 ## Requirements
 
-* Home Assistant
-* An internet connection for downloading the metadata database and checking for updates
+* Home Assistant 2026.8.0 or newer
+* An internet connection to download the metadata database and check for updates
 
 No external account or API key is required.
 
+## Troubleshooting
+
+* **Search finds nothing:** try a shorter title or an alias, and remove the country and language filters. Not every market is covered by the dataset.
+* **Database status shows an error:** the `last_error` attribute explains why. Press **Update database** to retry; the previous valid database stays in use meanwhile.
+* **Setup fails on first install:** the initial database download needs internet access. Home Assistant retries automatically.
+
 ## Project status
 
-Early development — version 0.1.0.
+Early development, version 0.1.0.
 
 ## License
 
 Tsundoku is released under the MIT License. See [LICENSE](LICENSE) for details.
-
