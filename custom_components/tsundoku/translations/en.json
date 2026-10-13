@@ -97,19 +97,19 @@
         }
       }
     },
-    "selector": {
-      "action": {
-        "options": {
-          "add": "Add manga",
-          "remove": "Remove manga"
-        }
-      }
-    },
     "error": {
       "empty_query": "Enter a manga title.",
       "no_results": "No matching release lines were found. Try another title or remove a filter.",
       "cannot_connect": "The local database could not be prepared. Check the network connection and integration logs, then try again.",
       "select_at_least_one": "Select at least one release line."
+    }
+  },
+  "selector": {
+    "action": {
+      "options": {
+        "add": "Add manga",
+        "remove": "Remove manga"
+      }
     }
   }
 }
