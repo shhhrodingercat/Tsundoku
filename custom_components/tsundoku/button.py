@@ -29,6 +29,7 @@ class TsundokuUpdateDatabaseButton(TsundokuSystemEntity, ButtonEntity):
     _attr_entity_category = EntityCategory.CONFIG
     _attr_translation_key = "update_database"
     _attr_icon = "mdi:database-sync"
+    _attr_should_poll = False
 
     def __init__(self, runtime_data: TsundokuRuntimeData) -> None:
         self.runtime_data = runtime_data
