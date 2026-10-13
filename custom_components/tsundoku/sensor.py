@@ -1,5 +1,6 @@
 from datetime import date, datetime
 
+
 from homeassistant.components.sensor import (
     SensorDeviceClass,
     SensorEntity,
@@ -17,6 +18,7 @@ from . import TsundokuRuntimeData
 from .coordinator import TsundokuCoordinator
 from .database_coordinator import TsundokuDatabaseCoordinator
 from .entity import TsundokuEntity, TsundokuSystemEntity
+from .localization import load_locale_catalog
 
 
 async def async_setup_entry(
@@ -167,7 +169,7 @@ class TsundokuNextVolumeSensor(TsundokuEntity, SensorEntity):
 
 
 class TsundokuNextReleaseSensor(TsundokuEntity, SensorEntity):
-    """Sensor for the next release date, including month-precision dates."""
+    """Sensor for the next release date when the day is known."""
 
     _attr_translation_key = "next_release"
     _attr_device_class = SensorDeviceClass.DATE
@@ -177,22 +179,25 @@ class TsundokuNextReleaseSensor(TsundokuEntity, SensorEntity):
         return "next_release"
 
     @property
+    def available(self) -> bool:
+        """Mark approximate month-only dates unavailable instead of inventing a day."""
+        if not super().available:
+            return False
+        volume = self._tracked.next_volume
+        return not (
+            volume is not None
+            and volume.release_date is None
+            and volume.release_date_precision == "month"
+        )
+
+    @property
     def native_value(self) -> date | None:
         volume = self._tracked.next_volume
-        if volume is None:
-            return None
-        if volume.release_date is not None:
-            return volume.release_date
-        if volume.release_date_precision == "month" and volume.release_date_raw:
-            try:
-                return date.fromisoformat(f"{volume.release_date_raw}-01")
-            except ValueError:
-                return None
-        return None
+        return volume.release_date if volume is not None else None
 
     @property
     def extra_state_attributes(self) -> dict[str, str]:
-        """Expose the original date and its precision."""
+        """Expose the original date precision and a localized month label."""
         volume = self._tracked.next_volume
         if volume is None:
             return {}
@@ -209,6 +214,26 @@ class TsundokuNextReleaseSensor(TsundokuEntity, SensorEntity):
             attributes["release_date_raw"] = raw_date
         if volume.release_date_type is not None:
             attributes["release_date_type"] = volume.release_date_type
+        if (
+            volume.release_date is None
+            and volume.release_date_precision == "month"
+            and volume.release_date_raw
+        ):
+            try:
+                year_text, month_text = volume.release_date_raw.split("-", maxsplit=1)
+                year = int(year_text)
+                month = int(month_text)
+                if 1 <= month <= 12:
+                    catalog = load_locale_catalog(self.hass.config.language)
+                    months = catalog.get("months", [])
+                    if len(months) >= 12:
+                        attributes["release_date_display"] = (
+                            f"{months[month - 1]} {year}"
+                        )
+                    else:
+                        attributes["release_date_display"] = volume.release_date_raw
+            except (ValueError, TypeError):
+                attributes["release_date_display"] = volume.release_date_raw
         return attributes
 
 
