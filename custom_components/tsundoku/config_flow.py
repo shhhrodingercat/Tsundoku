@@ -74,6 +74,7 @@ class TsundokuConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
         self._search_results: list[ReleaseLine] = []
         self._countries: list[str] = []
         self._languages: list[str] = []
+        self._catalog: dict[str, Any] = {}
 
     @staticmethod
     @callback
@@ -99,6 +100,9 @@ class TsundokuConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
         )
 
         if user_input is None:
+            self._catalog = await self.hass.async_add_executor_job(
+                load_locale_catalog, self.hass.config.language
+            )
             try:
                 if not await manager.updater.async_validate_database():
                     await manager.async_initialize()
@@ -193,10 +197,9 @@ class TsundokuConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
 
     def _show_search_form(self, errors: dict[str, str] | None = None):
         """Show the manga search form with database-backed filter choices."""
-        catalog = load_locale_catalog(self.hass.config.language)
         return self.async_show_form(
             step_id="user",
-            data_schema=_search_schema(self._countries, self._languages, catalog),
+            data_schema=_search_schema(self._countries, self._languages, self._catalog),
             errors=errors or {},
         )
 
@@ -208,6 +211,7 @@ class TsundokuOptionsFlow(config_entries.OptionsFlow):
         self._search_results: list[ReleaseLine] = []
         self._countries: list[str] = []
         self._languages: list[str] = []
+        self._catalog: dict[str, Any] = {}
 
     @property
     def _database_path(self) -> Path:
@@ -255,6 +259,9 @@ class TsundokuOptionsFlow(config_entries.OptionsFlow):
     ):
         """Search for additional manga release lines."""
         if user_input is None:
+            self._catalog = await self.hass.async_add_executor_job(
+                load_locale_catalog, self.hass.config.language
+            )
             try:
                 database_path = self._database_path
                 if not database_path.is_file():
@@ -300,10 +307,9 @@ class TsundokuOptionsFlow(config_entries.OptionsFlow):
         self, errors: dict[str, str] | None = None
     ):
         """Show the options-flow search form with translated filter choices."""
-        catalog = load_locale_catalog(self.hass.config.language)
         return self.async_show_form(
             step_id="add_search",
-            data_schema=_search_schema(self._countries, self._languages, catalog),
+            data_schema=_search_schema(self._countries, self._languages, self._catalog),
             errors=errors or {},
         )
 
