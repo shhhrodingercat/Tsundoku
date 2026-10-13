@@ -1,10 +1,12 @@
 import json
+from functools import lru_cache
 from pathlib import Path
 from typing import Any
 
 _LOCALES_DIR = Path(__file__).parent / "locales"
 
 
+@lru_cache(maxsize=32)
 def load_locale_catalog(language: str | None) -> dict[str, Any]:
     """Load optional display translations, falling back to English."""
     locale = (language or "en").replace("-", "_").split("_", maxsplit=1)[0].lower()
