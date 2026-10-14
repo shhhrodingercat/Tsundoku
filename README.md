@@ -123,6 +123,20 @@ No external account or API key is required.
 
 Early development, version 0.1.0.
 
+## ☕ Supporta il progetto
+
+Se ti è utile e vuoi contribuire ai costi di sviluppo e manutenzione:
+
+[![Buy Me a Coffee](https://www.buymeacoffee.com/assets/img/custom_images/orange_img.png)](https://www.buymeacoffee.com/ecobot)
+
+---
+
+## 👤 Sviluppatore
+
+Sviluppato da **Matteo Miccichè**  
+[LinkedIn](https://www.linkedin.com/in/miccichematteo/) · [Segnala un bug](https://github.com/shhhrodingercat/ecobot-ha/issues)
+
+
 ## License
 
 Tsundoku is released under the MIT License. See [LICENSE](LICENSE) for details.
