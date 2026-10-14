@@ -134,7 +134,7 @@ Se ti è utile e vuoi contribuire ai costi di sviluppo e manutenzione:
 ## 👤 Sviluppatore
 
 Sviluppato da **Matteo Miccichè**  
-[LinkedIn](https://www.linkedin.com/in/miccichematteo/) · [Segnala un bug](https://github.com/shhhrodingercat/ecobot-ha/issues)
+[LinkedIn](https://www.linkedin.com/in/miccichematteo/) · [Segnala un bug](https://github.com/shhhrodingercat/Tsundoku/issues)
 
 
 ## License
