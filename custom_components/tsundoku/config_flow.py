@@ -237,9 +237,9 @@ class TsundokuOptionsFlow(config_entries.OptionsFlow):
                 return await self.async_step_add_search()
             return await self.async_step_remove()
 
-        options = [{"value": "add"}]
+        options = ["add"]
         if self._tracked_ids:
-            options.append({"value": "remove"})
+            options.append("remove")
         return self.async_show_form(
             step_id="init",
             data_schema=vol.Schema(
