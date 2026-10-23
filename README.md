@@ -1,8 +1,12 @@
 # Tsundoku
 
-**Tsundoku** is a custom integration for [Home Assistant](https://www.home-assistant.io/) that tracks manga volume releases.
+**Manga volume release tracking for Home Assistant.**
 
-It shows the latest published volume and the next known release for each manga edition you follow, directly in Home Assistant.
+Tsundoku shows the latest published volume and the next known release for each manga edition you follow, directly in Home Assistant.
+
+## Status
+
+Early development — version 0.1.0.
 
 ## Features
 
@@ -16,52 +20,6 @@ It shows the latest published volume and the next known release for each manga e
 - **Automatic metadata updates:** a local copy of the metadata database is downloaded, validated and kept up to date in the background.
 - **Diagnostics and manual updates:** database status sensors and an **Update database** button.
 - **No API key required.**
-
-## Data source and attribution
-
-Tsundoku uses the SQLite metadata database published by [OpenTome / Mangarr](https://github.com/opentomedb/mangarr-metadata).
-
-The bundled per-volume metadata artifact is described by the upstream project as a GCD-derived metadata artifact for Mangarr, licensed under **Creative Commons Attribution-ShareAlike 4.0 International (CC BY-SA 4.0)**.
-
-Attribution and references:
-
-- **Data source:** [Grand Comics Database](https://www.comics.org/)
-- **Metadata project:** [OpenTome / Mangarr metadata](https://github.com/opentomedb/mangarr-metadata)
-- **Metadata license:** [CC BY-SA 4.0](https://creativecommons.org/licenses/by-sa/4.0/)
-
-Metadata and release dates depend on the upstream dataset and may be incomplete, approximate or change over time. Coverage varies by market and edition; verify that the edition you want is available before relying on it.
-
-### Database updates
-
-- The database is downloaded during initial setup and stored locally in `<config>/tsundoku/`.
-- Tsundoku checks for a newer release shortly after startup and then every 6 hours. You can also trigger an update check with the **Update database** button.
-- A downloaded file replaces the current database only after validation, including a SQLite integrity check and schema validation. If a download fails or the file is invalid, the existing database is kept.
-- Release dates are re-evaluated shortly after midnight so date-based sensors can update even when the database has not changed.
-
-## Installation
-
-### HACS
-
-1. Open HACS in Home Assistant.
-2. Add this repository as a custom repository, selecting **Integration** as the category.
-3. Install Tsundoku and restart Home Assistant.
-4. Go to **Settings → Devices & services → Add integration**.
-5. Search for **Tsundoku** and complete the setup.
-
-### Manual installation
-
-1. Copy the `custom_components/tsundoku` directory into the `custom_components` directory of your Home Assistant configuration.
-2. Restart Home Assistant.
-3. Go to **Settings → Devices & services → Add integration**.
-4. Search for **Tsundoku** and complete the setup.
-
-## Setup and configuration
-
-1. Add the integration and enter a title, or part of a title, in the search form.
-2. Optionally select a **market / edition** and **language** from the dropdowns. These options are populated from values present in the local database. Market/edition values are not necessarily ISO country codes; upstream data may use values such as `EN`.
-3. Select the edition or editions you want to track.
-
-Only one Tsundoku instance can be configured. To change your list later, open the integration and choose **Configure**. You can search for and add editions or remove existing ones. Removing an edition also removes its device and entities.
 
 ## Entities
 
@@ -88,6 +46,59 @@ Each edition is represented by a device named using its title and available edit
 | Update database | Button that checks for and installs a newer database immediately. |
 
 The database status sensor also exposes `checksum` and, after a failure, `last_error` as attributes.
+
+## Data source and attribution
+
+Tsundoku uses the SQLite metadata database published by [OpenTome / Mangarr](https://github.com/opentomedb/mangarr-metadata).
+
+The bundled per-volume metadata artifact is described by the upstream project as a GCD-derived metadata artifact for Mangarr, licensed under **Creative Commons Attribution-ShareAlike 4.0 International (CC BY-SA 4.0)**.
+
+Attribution and references:
+
+- **Data source:** [Grand Comics Database](https://www.comics.org/)
+- **Metadata project:** [OpenTome / Mangarr metadata](https://github.com/opentomedb/mangarr-metadata)
+- **Metadata license:** [CC BY-SA 4.0](https://creativecommons.org/licenses/by-sa/4.0/)
+
+Metadata and release dates depend on the upstream dataset and may be incomplete, approximate or change over time. Coverage varies by market and edition; verify that the edition you want is available before relying on it.
+
+### Database updates
+
+- The database is downloaded during initial setup and stored locally in `<config>/tsundoku/`.
+- Tsundoku checks for a newer release shortly after startup and then every 6 hours. You can also trigger an update check with the **Update database** button.
+- A downloaded file replaces the current database only after validation, including a SQLite integrity check and schema validation. If a download fails or the file is invalid, the existing database is kept.
+- Release dates are re-evaluated shortly after midnight so date-based sensors can update even when the database has not changed.
+
+## Requirements
+
+- Home Assistant 2026.8.0 or newer.
+- An internet connection to download the metadata database and check for updates.
+
+No external account or API key is required.
+
+## Installation
+
+### HACS
+
+1. Open HACS in Home Assistant.
+2. Add this repository as a custom repository, selecting **Integration** as the category.
+3. Install Tsundoku and restart Home Assistant.
+4. Go to **Settings → Devices & services → Add integration**.
+5. Search for **Tsundoku** and complete the setup.
+
+### Manual installation
+
+1. Copy the `custom_components/tsundoku` directory into the `custom_components` directory of your Home Assistant configuration.
+2. Restart Home Assistant.
+3. Go to **Settings → Devices & services → Add integration**.
+4. Search for **Tsundoku** and complete the setup.
+
+## Setup and configuration
+
+1. Add the integration and enter a title, or part of a title, in the search form.
+2. Optionally select a **market / edition** and **language** from the dropdowns. These options are populated from values present in the local database. Market/edition values are not necessarily ISO country codes; upstream data may use values such as `EN`.
+3. Select the edition or editions you want to track.
+
+Only one Tsundoku instance can be configured. To change your list later, open the integration and choose **Configure**. You can search for and add editions or remove existing ones. Removing an edition also removes its device and entities.
 
 ## How release dates are interpreted
 
@@ -117,23 +128,12 @@ To contribute another locale, add a file such as `ja.json` following the structu
 
 Home Assistant configuration-flow labels and entity names are translated separately in `custom_components/tsundoku/translations/`.
 
-## Requirements
-
-- Home Assistant 2026.8.0 or newer.
-- An internet connection to download the metadata database and check for updates.
-
-No external account or API key is required.
-
 ## Troubleshooting
 
 - **Search finds nothing:** try a shorter title or alias and clear the market/edition and language filters. Not every edition is covered by the upstream dataset.
 - **Database status shows an error:** inspect the `last_error` attribute. Press **Update database** to retry; the previous valid database remains in use if an update fails.
 - **Setup fails on first install:** the initial database download requires internet access. Home Assistant will retry setup when possible.
 - **Next release is `unknown`:** check `release_date_precision` and `release_date_raw`. If precision is `month`, the source does not provide a day, so `unknown` is expected rather than an integration error.
-
-## Project status
-
-Early development — version 0.1.0.
 
 ## Support the project
 
@@ -145,7 +145,7 @@ If you find Tsundoku useful and would like to contribute to its development and 
 
 Developed by **Matteo Miccichè**.
 
-[LinkedIn](https://www.linkedin.com/in/miccichematteo/) · [Report a bug](https://github.com/shhhrodingercat/Tsundoku/issues)
+[LinkedIn](https://www.linkedin.com/in/miccichematteo/) · [Report a bug](https://github.com/shhhrodingercat/tsundoku/issues)
 
 ## License
 
