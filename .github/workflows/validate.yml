@@ -1,17 +1,19 @@
-name: Validate integration
+name: Validate
 
 on:
   push:
   pull_request:
+  schedule:
+    - cron: "0 0 * * *"
   workflow_dispatch:
 
 jobs:
   hassfest:
-    name: Home Assistant validation
+    name: Hassfest
     runs-on: ubuntu-latest
     steps:
       - name: Check out repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
       - name: Run hassfest
         uses: home-assistant/actions/hassfest@master
 
@@ -20,7 +22,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Check out repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
       - name: Run HACS validation
         uses: hacs/action@main
         with:
