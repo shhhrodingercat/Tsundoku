@@ -6,6 +6,9 @@ from urllib.parse import quote
 
 from .models import ReleaseLine, Volume
 
+# SQLite limits the number of variables of a query: stay well below it.
+_ID_CHUNK = 500
+
 
 class MangaDatabase:
     """Read manga release metadata from the local SQLite database."""
@@ -171,12 +174,102 @@ class MangaDatabase:
             ).fetchall()
         return [self._volume_from_row(row) for row in rows]
 
+    def get_series_ids_with_exact_dates(self, series_ids: list[int]) -> set[int]:
+        """Return the series that have at least one volume with an exact day.
+
+        Only those can have events in the calendar: volumes dated to a month or
+        a year have no day to put an event on.
+        """
+        found: set[int] = set()
+        with closing(self._connect()) as conn:
+            for start in range(0, len(series_ids), _ID_CHUNK):
+                chunk = series_ids[start : start + _ID_CHUNK]
+                placeholders = ",".join("?" * len(chunk))
+                rows = conn.execute(
+                    f"""
+                    SELECT DISTINCT gcd_series_id
+                    FROM volumes
+                    WHERE release_date IS NOT NULL
+                      AND gcd_series_id IN ({placeholders})
+                    """,
+                    chunk,
+                ).fetchall()
+                found.update(row[0] for row in rows)
+        return found
+
+    def get_dated_volumes(
+        self,
+        series_id: int,
+        start: date,
+        end: date | None = None,
+        limit: int | None = None,
+    ) -> list[Volume]:
+        """Return the volumes with an exact release date from ``start``.
+
+        ``end`` is excluded and ``None`` means no end. Volumes dated to a month
+        or a year are never returned.
+        """
+        sql = """
+            SELECT
+                id, gcd_series_id, volume_number, title,
+                release_date, release_date_precision, release_date_raw,
+                release_date_type, isbn13, tome_id
+            FROM volumes
+            WHERE gcd_series_id = ?
+              AND release_date IS NOT NULL
+              AND release_date >= ?
+        """
+        params: list[object] = [series_id, start.isoformat()]
+        if end is not None:
+            sql += " AND release_date < ?"
+            params.append(end.isoformat())
+        sql += " ORDER BY release_date, volume_number"
+        if limit is not None:
+            sql += " LIMIT ?"
+            params.append(max(1, limit))
+        with closing(self._connect()) as conn:
+            rows = conn.execute(sql, params).fetchall()
+        return [self._volume_from_row(row) for row in rows]
+
+    def get_month_volumes(self, series_id: int, month: str) -> list[Volume]:
+        """Return the volumes releasing in a month, given as ``YYYY-MM``.
+
+        These are the volumes with an exact day in that month and the ones dated
+        to the month only. Exact days come first.
+        """
+        with closing(self._connect()) as conn:
+            rows = conn.execute(
+                """
+                SELECT
+                    id, gcd_series_id, volume_number, title,
+                    release_date, release_date_precision, release_date_raw,
+                    release_date_type, isbn13, tome_id
+                FROM volumes
+                WHERE gcd_series_id = ?
+                  AND (
+                        (release_date IS NOT NULL AND substr(release_date, 1, 7) = ?)
+                        OR (
+                            release_date IS NULL
+                            AND release_date_precision = 'month'
+                            AND release_date_raw = ?
+                        )
+                  )
+                ORDER BY
+                    COALESCE(release_date, release_date_raw || '-99'),
+                    volume_number
+                """,
+                (series_id, month, month),
+            ).fetchall()
+        return [self._volume_from_row(row) for row in rows]
+
     def get_latest_volume(self, series_id: int, today: date) -> Volume | None:
         """Return the latest volume known to have been published.
 
-        Coarse dates are considered published only when their whole month/year
-        is in the past. This avoids treating an imprecise current-month date as
-        proof that a volume has already appeared.
+        A volume with an exact date is published from the day after its release,
+        so that on the release day it is still the next volume and automations
+        can act on it. Coarse dates are considered published only when their
+        whole month/year is in the past. This avoids treating an imprecise
+        current-month date as proof that a volume has already appeared.
         """
         current_month = today.strftime("%Y-%m")
         current_year = str(today.year)
@@ -190,7 +283,7 @@ class MangaDatabase:
                 FROM volumes
                 WHERE gcd_series_id = ?
                   AND (
-                        (release_date IS NOT NULL AND release_date <= ?)
+                        (release_date IS NOT NULL AND release_date < ?)
                         OR (
                             release_date IS NULL
                             AND release_date_type = 'published'
@@ -222,10 +315,12 @@ class MangaDatabase:
         return self._volume_from_row(row) if row else None
 
     def get_next_volume(self, series_id: int, today: date) -> Volume | None:
-        """Return the next dated or future month-precision release.
+        """Return the next dated or current/future month-precision release.
 
-        A month-precision release is eligible when its month is current or
-        future and its milestone is not marked as already published.
+        A volume with an exact date stays the next one through its release day.
+        A month-precision volume stays the next one for its whole month, whatever
+        the dataset says about it, and stops being the next one when the following
+        month starts.
         """
         current_month = today.strftime("%Y-%m")
         with closing(self._connect()) as conn:
@@ -238,12 +333,11 @@ class MangaDatabase:
                 FROM volumes
                 WHERE gcd_series_id = ?
                   AND (
-                        (release_date IS NOT NULL AND release_date > ?)
+                        (release_date IS NOT NULL AND release_date >= ?)
                         OR (
                             release_date IS NULL
                             AND release_date_precision = 'month'
                             AND release_date_raw >= ?
-                            AND COALESCE(release_date_type, 'unknown') != 'published'
                         )
                   )
                 ORDER BY
@@ -265,7 +359,7 @@ class MangaDatabase:
                 FROM volumes
                 WHERE gcd_series_id = ?
                   AND (
-                        (release_date IS NOT NULL AND release_date <= ?)
+                        (release_date IS NOT NULL AND release_date < ?)
                         OR (
                             release_date IS NULL
                             AND release_date_type = 'published'

@@ -9,21 +9,23 @@ from homeassistant.core import HomeAssistant
 from homeassistant.exceptions import ConfigEntryNotReady
 from homeassistant.helpers import aiohttp_client
 from homeassistant.helpers import config_validation as cv
+from homeassistant.helpers import entity_registry as er
 from homeassistant.helpers.event import (
     async_track_time_change,
     async_track_time_interval,
 )
 
-from .const import DOMAIN
+from .const import CALENDAR_KEY, CONF_CALENDAR_IDS, DOMAIN
 from .coordinator import TsundokuCoordinator
 from .database import MangaDatabase
 from .database_coordinator import TsundokuDatabaseCoordinator
 from .database_manager import DatabaseManager
 from .localization import load_locale_catalog
+from .services import async_setup_services
 
 _LOGGER = logging.getLogger(__name__)
 
-PLATFORMS = [Platform.BUTTON, Platform.SENSOR]
+PLATFORMS = [Platform.BUTTON, Platform.CALENDAR, Platform.SENSOR]
 CONFIG_SCHEMA = cv.config_entry_only_config_schema(DOMAIN)
 
 
@@ -38,7 +40,8 @@ class TsundokuRuntimeData:
 
 
 async def async_setup(hass: HomeAssistant, config: dict) -> bool:
-    """Set up the Tsundoku integration."""
+    """Set up the Tsundoku integration and register its actions."""
+    async_setup_services(hass)
     return True
 
 
@@ -94,7 +97,11 @@ async def async_setup_entry(
             database_coordinator.refresh_status()
 
     async def async_refresh_manga_at_midnight(_now) -> None:
-        """Recalculate date-based sensors after the local date changes."""
+        """Recalculate date-based sensors after the local date changes.
+
+        A volume is the next one through its release day and the latest from the
+        day after, so this is what moves the sensors on.
+        """
         await coordinator.async_request_refresh()
 
     remove_database_update_listener = async_track_time_interval(
@@ -107,8 +114,8 @@ async def async_setup_entry(
     )
     entry.async_on_unload(remove_midnight_listener)
 
+    _async_remove_stale_calendars(hass, entry)
     await hass.config_entries.async_forward_entry_setups(entry, PLATFORMS)
-    entry.async_on_unload(entry.add_update_listener(async_reload_entry))
 
     # Remote update check runs after setup so GitHub latency cannot delay loading.
     entry.async_create_background_task(
@@ -117,12 +124,16 @@ async def async_setup_entry(
     return True
 
 
-async def async_reload_entry(
-    hass: HomeAssistant,
-    entry: config_entries.ConfigEntry,
+def _async_remove_stale_calendars(
+    hass: HomeAssistant, entry: config_entries.ConfigEntry
 ) -> None:
-    """Reload Tsundoku after its tracked manga options change."""
-    await hass.config_entries.async_reload(entry.entry_id)
+    """Remove the calendar entity when no release line is in the calendar."""
+    if entry.options.get(CONF_CALENDAR_IDS):
+        return
+    registry = er.async_get(hass)
+    for entity in er.async_entries_for_config_entry(registry, entry.entry_id):
+        if entity.domain == Platform.CALENDAR and entity.unique_id == CALENDAR_KEY:
+            registry.async_remove(entity.entity_id)
 
 
 async def async_unload_entry(

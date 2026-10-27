@@ -1,0 +1,33 @@
+get_releases:
+  fields:
+    start_date:
+      required: false
+      selector:
+        date:
+    days:
+      required: false
+      default: 1
+      selector:
+        number:
+          min: 1
+          max: 366
+          mode: box
+
+get_upcoming:
+  fields:
+    limit:
+      required: false
+      default: 5
+      selector:
+        number:
+          min: 1
+          max: 50
+          mode: box
+
+get_month_releases:
+  fields:
+    month:
+      required: false
+      example: "2026-11"
+      selector:
+        text:

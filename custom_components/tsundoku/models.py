@@ -32,7 +32,14 @@ class Volume:
 
 @dataclass(frozen=True)
 class TrackedReleaseLine:
+    """A tracked release line with its current volumes.
+
+    ``calendar_volumes`` is only filled for lines that have a calendar: the
+    volumes with an exact release date from today on.
+    """
+
     release_line: ReleaseLine
     latest_volume: Volume | None
     next_volume: Volume | None
     published_volume_count: int
+    calendar_volumes: tuple[Volume, ...] = ()
