@@ -16,6 +16,17 @@
         "data": {
           "tome_ids": "Linee editoriali da seguire"
         }
+      },
+      "calendars": {
+        "title": "Calendario",
+        "description": "Scegli le linee editoriali da mostrare nel calendario Tsundoku, con un evento di un giorno intero per ogni volume che ha una data di uscita esatta. Lascia tutto deselezionato per saltare.\n\nNon disponibili, perché le loro date di uscita hanno solo il mese o l'anno: {unavailable}",
+        "data": {
+          "calendar_ids": "Mostra nel calendario"
+        }
+      },
+      "calendars_unavailable": {
+        "title": "Calendario non disponibile",
+        "description": "Nessuna delle linee editoriali selezionate può stare nel calendario: le loro date di uscita hanno solo il mese o l'anno, senza il giorno esatto.\n\nInteressate: {unavailable}\n\nPotrai aggiungerle in seguito dalle opzioni, quando la fonte avrà le date esatte."
       }
     },
     "error": {
@@ -68,9 +79,11 @@
     "step": {
       "init": {
         "title": "Gestisci i manga seguiti",
-        "description": "Aggiungi o rimuovi linee editoriali.",
-        "data": {
-          "action": "Azione"
+        "description": "Aggiungi o rimuovi linee editoriali, o scegli quelle mostrate nel calendario.",
+        "menu_options": {
+          "add_search": "Aggiungi manga",
+          "remove": "Rimuovi manga",
+          "calendars": "Calendario"
         }
       },
       "add_search": {
@@ -89,12 +102,34 @@
           "tome_ids": "Linee editoriali da seguire"
         }
       },
+      "add_calendars": {
+        "title": "Calendario",
+        "description": "Scegli le nuove linee editoriali da mostrare nel calendario Tsundoku, con un evento di un giorno intero per ogni volume che ha una data di uscita esatta. Lascia tutto deselezionato per saltare.\n\nNon disponibili, perché le loro date di uscita hanno solo il mese o l'anno: {unavailable}",
+        "data": {
+          "calendar_ids": "Mostra nel calendario"
+        }
+      },
+      "add_calendars_unavailable": {
+        "title": "Calendario non disponibile",
+        "description": "Nessuna delle nuove linee editoriali può stare nel calendario: le loro date di uscita hanno solo il mese o l'anno, senza il giorno esatto.\n\nInteressate: {unavailable}\n\nPotrai aggiungerle in seguito dalle opzioni, quando la fonte avrà le date esatte."
+      },
       "remove": {
         "title": "Rimuovi manga seguiti",
         "description": "Seleziona le linee editoriali che non vuoi più seguire.",
         "data": {
           "tome_ids": "Linee editoriali da seguire"
         }
+      },
+      "calendars": {
+        "title": "Gestisci il calendario",
+        "description": "Seleziona le linee editoriali mostrate nel calendario Tsundoku. Quelle che deselezioni vengono tolte.\n\nNon disponibili, perché le loro date di uscita hanno solo il mese o l'anno: {unavailable}",
+        "data": {
+          "calendar_ids": "Linee editoriali nel calendario"
+        }
+      },
+      "calendars_unavailable": {
+        "title": "Calendario non disponibile",
+        "description": "Nessuna delle tue linee editoriali può stare nel calendario: le loro date di uscita hanno solo il mese o l'anno, senza il giorno esatto.\n\nInteressate: {unavailable}"
       }
     },
     "error": {
@@ -104,12 +139,45 @@
       "select_at_least_one": "Seleziona almeno una linea editoriale."
     }
   },
-  "selector": {
-    "action": {
-      "options": {
-        "add": "Aggiungi manga",
-        "remove": "Rimuovi manga"
+  "services": {
+    "get_releases": {
+      "name": "Ottieni le uscite",
+      "description": "Restituisce i volumi in uscita in un intervallo di giorni, con i titoli dei manga pronti da usare nelle notifiche. I volumi con solo il mese o l'anno restano fuori.",
+      "fields": {
+        "start_date": {
+          "name": "Data di inizio",
+          "description": "Primo giorno dell'intervallo. Se omessa, oggi."
+        },
+        "days": {
+          "name": "Giorni",
+          "description": "Numero di giorni dell'intervallo, a partire dalla data di inizio. Se omesso, 1: un solo giorno."
+        }
       }
+    },
+    "get_upcoming": {
+      "name": "Ottieni le prossime uscite",
+      "description": "Restituisce i prossimi volumi in uscita, da oggi in poi, con i titoli dei manga pronti da usare nelle notifiche. I volumi con solo il mese o l'anno restano fuori.",
+      "fields": {
+        "limit": {
+          "name": "Limite",
+          "description": "Numero massimo di volumi da restituire. Se omesso, 5."
+        }
+      }
+    },
+    "get_month_releases": {
+      "name": "Ottieni le uscite del mese",
+      "description": "Restituisce i volumi in uscita in un mese, compresi quelli con solo il mese, che non hanno un giorno esatto.",
+      "fields": {
+        "month": {
+          "name": "Mese",
+          "description": "Il mese come AAAA-MM, per esempio 2026-11. Se omesso, il mese corrente."
+        }
+      }
+    }
+  },
+  "exceptions": {
+    "not_loaded": {
+      "message": "Tsundoku non è caricato. Controlla l'integrazione in Impostazioni → Dispositivi e servizi."
     }
   }
 }

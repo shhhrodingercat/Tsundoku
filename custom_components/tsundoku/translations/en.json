@@ -16,6 +16,17 @@
         "data": {
           "tome_ids": "Release lines to track"
         }
+      },
+      "calendars": {
+        "title": "Calendar",
+        "description": "Choose the release lines to show in the Tsundoku calendar, with one all-day event for each volume that has an exact release date. Leave everything unselected to skip it.\n\nNot available, because their release dates have only a month or a year: {unavailable}",
+        "data": {
+          "calendar_ids": "Show in the calendar"
+        }
+      },
+      "calendars_unavailable": {
+        "title": "Calendar not available",
+        "description": "None of the selected release lines can be in the calendar: their release dates have only a month or a year, without an exact day.\n\nAffected: {unavailable}\n\nYou can add them later from the options, once the source has exact dates."
       }
     },
     "error": {
@@ -68,9 +79,11 @@
     "step": {
       "init": {
         "title": "Manage tracked manga",
-        "description": "Add or remove manga release lines.",
-        "data": {
-          "action": "Action"
+        "description": "Add or remove manga release lines, or choose the ones shown in the calendar.",
+        "menu_options": {
+          "add_search": "Add manga",
+          "remove": "Remove manga",
+          "calendars": "Calendar"
         }
       },
       "add_search": {
@@ -89,12 +102,34 @@
           "tome_ids": "Release lines to track"
         }
       },
+      "add_calendars": {
+        "title": "Calendar",
+        "description": "Choose the new release lines to show in the Tsundoku calendar, with one all-day event for each volume that has an exact release date. Leave everything unselected to skip it.\n\nNot available, because their release dates have only a month or a year: {unavailable}",
+        "data": {
+          "calendar_ids": "Show in the calendar"
+        }
+      },
+      "add_calendars_unavailable": {
+        "title": "Calendar not available",
+        "description": "None of the new release lines can be in the calendar: their release dates have only a month or a year, without an exact day.\n\nAffected: {unavailable}\n\nYou can add them later from the options, once the source has exact dates."
+      },
       "remove": {
         "title": "Remove tracked manga",
         "description": "Select the release lines to stop tracking.",
         "data": {
           "tome_ids": "Release lines to track"
         }
+      },
+      "calendars": {
+        "title": "Manage the calendar",
+        "description": "Select the release lines shown in the Tsundoku calendar. Those you unselect are removed from it.\n\nNot available, because their release dates have only a month or a year: {unavailable}",
+        "data": {
+          "calendar_ids": "Release lines in the calendar"
+        }
+      },
+      "calendars_unavailable": {
+        "title": "Calendar not available",
+        "description": "None of your release lines can be in the calendar: their release dates have only a month or a year, without an exact day.\n\nAffected: {unavailable}"
       }
     },
     "error": {
@@ -104,12 +139,45 @@
       "select_at_least_one": "Select at least one release line."
     }
   },
-  "selector": {
-    "action": {
-      "options": {
-        "add": "Add manga",
-        "remove": "Remove manga"
+  "services": {
+    "get_releases": {
+      "name": "Get releases",
+      "description": "Returns the volumes releasing in a range of days, with the titles of their manga ready to use in notifications. Volumes dated to a month or a year only are left out.",
+      "fields": {
+        "start_date": {
+          "name": "Start date",
+          "description": "First day of the range. Defaults to today."
+        },
+        "days": {
+          "name": "Days",
+          "description": "Number of days in the range, starting from the start date. Defaults to 1, a single day."
+        }
       }
+    },
+    "get_upcoming": {
+      "name": "Get upcoming releases",
+      "description": "Returns the next volumes to release, from today on, with the titles of their manga ready to use in notifications. Volumes dated to a month or a year only are left out.",
+      "fields": {
+        "limit": {
+          "name": "Limit",
+          "description": "Maximum number of volumes to return. Defaults to 5."
+        }
+      }
+    },
+    "get_month_releases": {
+      "name": "Get month releases",
+      "description": "Returns the volumes releasing in a month, including the ones dated to the month only, which have no exact day.",
+      "fields": {
+        "month": {
+          "name": "Month",
+          "description": "The month as YYYY-MM, for example 2026-11. Defaults to the current month."
+        }
+      }
+    }
+  },
+  "exceptions": {
+    "not_loaded": {
+      "message": "Tsundoku is not loaded. Check the integration in Settings → Devices & services."
     }
   }
 }
