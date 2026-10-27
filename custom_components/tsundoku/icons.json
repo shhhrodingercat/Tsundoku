@@ -1,0 +1,12 @@
+{
+  "entity": {
+    "calendar": {
+      "calendar": {"default": "mdi:calendar-star"}
+    }
+  },
+  "services": {
+    "get_releases": {"service": "mdi:calendar-search"},
+    "get_upcoming": {"service": "mdi:calendar-arrow-right"},
+    "get_month_releases": {"service": "mdi:calendar-month"}
+  }
+}
