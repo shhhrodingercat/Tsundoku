@@ -1,8 +1,12 @@
 # Tsundoku
 
-**Tsundoku** is a custom integration for [Home Assistant](https://www.home-assistant.io/) that tracks manga volume releases.
+**Manga release tracking for Home Assistant.**
 
-It shows the latest published volume and the next known release for each manga edition you follow, directly in Home Assistant.
+Tsundoku follows the manga editions you choose and shows the latest published volume and the next known release, directly in Home Assistant.
+
+## Status
+
+Version 1.0.0.
 
 ## Features
 
@@ -18,53 +22,6 @@ It shows the latest published volume and the next known release for each manga e
 - **Automatic metadata updates:** a local copy of the metadata database is downloaded, validated and kept up to date in the background.
 - **Diagnostics and manual updates:** database status sensors and an **Update database** button.
 - **No API key required.**
-
-## Data source and attribution
-
-Tsundoku uses the SQLite metadata database published by [OpenTome / Mangarr](https://github.com/opentomedb/mangarr-metadata).
-
-The bundled per-volume metadata artifact is described by the upstream project as a GCD-derived metadata artifact for Mangarr, licensed under **Creative Commons Attribution-ShareAlike 4.0 International (CC BY-SA 4.0)**.
-
-Attribution and references:
-
-- **Data source:** [Grand Comics Database](https://www.comics.org/)
-- **Metadata project:** [OpenTome / Mangarr metadata](https://github.com/opentomedb/mangarr-metadata)
-- **Metadata license:** [CC BY-SA 4.0](https://creativecommons.org/licenses/by-sa/4.0/)
-
-Metadata and release dates depend on the upstream dataset and may be incomplete, approximate or change over time. Coverage varies by market and edition; verify that the edition you want is available before relying on it.
-
-### Database updates
-
-- The database is downloaded during initial setup and stored locally in `<config>/tsundoku/`.
-- Tsundoku checks for a newer release shortly after startup and then every 6 hours. You can also trigger an update check with the **Update database** button.
-- A downloaded file replaces the current database only after validation, including a SQLite integrity check and schema validation. If a download fails or the file is invalid, the existing database is kept.
-- Release dates are re-evaluated shortly after midnight so date-based sensors can update even when the database has not changed.
-
-## Installation
-
-### HACS
-
-1. Open HACS in Home Assistant.
-2. Add this repository as a custom repository, selecting **Integration** as the category.
-3. Install Tsundoku and restart Home Assistant.
-4. Go to **Settings → Devices & services → Add integration**.
-5. Search for **Tsundoku** and complete the setup.
-
-### Manual installation
-
-1. Copy the `custom_components/tsundoku` directory into the `custom_components` directory of your Home Assistant configuration.
-2. Restart Home Assistant.
-3. Go to **Settings → Devices & services → Add integration**.
-4. Search for **Tsundoku** and complete the setup.
-
-## Setup and configuration
-
-1. Add the integration and enter a title, or part of a title, in the search form.
-2. Optionally select a **market / edition** and **language** from the dropdowns. These options are populated from values present in the local database. Market/edition values are not necessarily ISO country codes; upstream data may use values such as `EN`.
-3. Select the edition or editions you want to track.
-4. Choose which of them to show in the [calendar](#calendar). Leave everything unselected if you do not want it. Editions whose release dates only have a month or a year are listed as not available.
-
-Only one Tsundoku instance can be configured. To change your list later, open the integration and choose **Configure**. You can search for and add editions, remove existing ones, or choose the editions in the calendar. When you add editions you are asked again which of the new ones go in the calendar. Removing an edition also removes its device and entities, and takes it out of the calendar.
 
 ## Entities
 
@@ -215,6 +172,58 @@ actions:
           message: "{{ month.titles | join(', ') }}"
 ```
 
+## Data source and attribution
+
+Tsundoku uses the SQLite metadata database published by [OpenTome / Mangarr](https://github.com/opentomedb/mangarr-metadata). The database is not part of this repository or of the integration: it is downloaded from the upstream releases during setup and stored on your Home Assistant instance.
+
+The upstream project describes the per-volume metadata as a GCD-derived metadata artifact for Mangarr, licensed under **Creative Commons Attribution-ShareAlike 4.0 International (CC BY-SA 4.0)**.
+
+Attribution and references:
+
+- **Data source:** [Grand Comics Database](https://www.comics.org/)
+- **Metadata project:** [OpenTome / Mangarr metadata](https://github.com/opentomedb/mangarr-metadata)
+- **Metadata license:** [CC BY-SA 4.0](https://creativecommons.org/licenses/by-sa/4.0/)
+
+Metadata and release dates depend on the upstream dataset and may be incomplete, approximate or change over time. Coverage varies by market and edition; verify that the edition you want is available before relying on it.
+
+### Database updates
+
+- The database is downloaded during initial setup and stored locally in `<config>/tsundoku/`.
+- Tsundoku checks for a newer release shortly after startup and then every 6 hours. You can also trigger an update check with the **Update database** button.
+- A downloaded file replaces the current database only after validation, including a SQLite integrity check and schema validation. If a download fails or the file is invalid, the existing database is kept.
+- Release dates are re-evaluated shortly after midnight so date-based sensors can update even when the database has not changed.
+
+## Requirements
+
+- Home Assistant 2026.8.0 or newer.
+- An internet connection to download the metadata database and check for updates.
+
+No external account or API key is required.
+
+## Installation
+
+### HACS
+
+1. Open HACS in Home Assistant.
+2. Add this repository as a custom repository, selecting **Integration** as the category.
+3. Install Tsundoku and restart Home Assistant.
+4. Go to **Settings → Devices & services → Add integration** and search for **Tsundoku**.
+
+### Manual installation
+
+1. Copy the `custom_components/tsundoku` directory into the `custom_components` directory of your Home Assistant configuration.
+2. Restart Home Assistant.
+3. Go to **Settings → Devices & services → Add integration** and search for **Tsundoku**.
+
+## Setup and configuration
+
+1. Add the integration and enter a title, or part of a title, in the search form.
+2. Optionally select a **market / edition** and **language** from the dropdowns. These options are populated from values present in the local database. Market/edition values are not necessarily ISO country codes; upstream data may use values such as `EN`.
+3. Select the edition or editions you want to track.
+4. Choose which of them to show in the [calendar](#calendar). Leave everything unselected if you do not want it. Editions whose release dates only have a month or a year are listed as not available.
+
+Only one Tsundoku instance can be configured. To change your list later, open the integration and choose **Configure**. You can search for and add editions, remove existing ones, or choose the editions in the calendar. When you add editions you are asked again which of the new ones go in the calendar. Removing an edition also removes its device and entities, and takes it out of the calendar.
+
 ## How release dates are interpreted
 
 The source dataset does not always provide a full date. Tsundoku preserves that uncertainty instead of inventing a day.
@@ -245,13 +254,6 @@ To contribute another locale, add a file such as `ja.json` following the structu
 
 Home Assistant configuration-flow labels and entity names are translated separately in `custom_components/tsundoku/translations/`.
 
-## Requirements
-
-- Home Assistant 2026.8.0 or newer.
-- An internet connection to download the metadata database and check for updates.
-
-No external account or API key is required.
-
 ## Troubleshooting
 
 - **Search finds nothing:** try a shorter title or alias and clear the market/edition and language filters. Not every edition is covered by the upstream dataset.
@@ -260,10 +262,6 @@ No external account or API key is required.
 - **Next release is `unknown`:** check `release_date_precision` and `release_date_raw`. If precision is `month`, the source does not provide a day, so `unknown` is expected rather than an integration error.
 - **An edition cannot be put in the calendar:** all its release dates only have a month or a year. The calendar needs an exact day: use `tsundoku.get_month_releases` to follow it, and try again later from **Configure → Calendar**.
 - **The calendar is empty or has fewer volumes than expected:** it lists the volumes with an exact release date from today on, for the editions in it. Volumes dated to a month only have no event until the source adds the day.
-
-## Project status
-
-Early development — version 0.2.0.
 
 ## Support the project
 
@@ -279,12 +277,6 @@ Developed by **Matteo Miccichè**.
 
 ## License
 
-### Integration code
-
 The Tsundoku integration code is released under the [MIT License](LICENSE).
 
-### Metadata
-
-The bundled GCD-derived per-volume metadata artifact for Mangarr is distributed under [CC BY-SA 4.0](https://creativecommons.org/licenses/by-sa/4.0/), with attribution to the [Grand Comics Database](https://www.comics.org/) and reference to the [OpenTome / Mangarr metadata project](https://github.com/opentomedb/mangarr-metadata).
-
-The integration code and the metadata are separate components and are subject to their respective license terms. Consult the upstream project for the complete metadata licensing and attribution information.
+The metadata database is a separate component, published by the upstream project under [CC BY-SA 4.0](https://creativecommons.org/licenses/by-sa/4.0/) with attribution to the [Grand Comics Database](https://www.comics.org/). Tsundoku does not include or redistribute it: the integration downloads it from the [OpenTome / Mangarr metadata project](https://github.com/opentomedb/mangarr-metadata) and keeps it on your instance. Consult the upstream project for the complete metadata licensing and attribution information.
