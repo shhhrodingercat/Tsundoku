@@ -27,6 +27,33 @@ _LOGGER = logging.getLogger(__name__)
 _NONE = "—"
 
 
+def _open_database(database_path: Path) -> MangaDatabase:
+    """Return the local database, or fail if its file is missing.
+
+    The file check is a filesystem access: call this only from the executor.
+    """
+    if not database_path.is_file():
+        raise FileNotFoundError("Tsundoku metadata database is unavailable")
+    return MangaDatabase(database_path)
+
+
+def _load_filter_options(database_path: Path) -> tuple[list[str], list[str]]:
+    """Read the market/edition and language filter values from the database."""
+    return _open_database(database_path).get_search_filter_options()
+
+
+def _search_release_lines(
+    database_path: Path,
+    query: str,
+    country: str | None,
+    language: str | None,
+) -> list[ReleaseLine]:
+    """Search the release lines of the local database."""
+    return _open_database(database_path).search_release_lines(
+        query, country=country, language=language
+    )
+
+
 def _search_schema(
     countries: list[str], languages: list[str], catalog: dict[str, Any]
 ) -> vol.Schema:
@@ -390,15 +417,11 @@ class TsundokuOptionsFlow(config_entries.OptionsFlowWithReload):
                 load_locale_catalog, self.hass.config.language
             )
             try:
-                database_path = self._database_path
-                if not database_path.is_file():
-                    raise FileNotFoundError("Tsundoku metadata database is unavailable")
-                database = MangaDatabase(database_path)
                 (
                     self._countries,
                     self._languages,
                 ) = await self.hass.async_add_executor_job(
-                    database.get_search_filter_options
+                    _load_filter_options, self._database_path
                 )
             except Exception:
                 _LOGGER.exception("Could not load Tsundoku search filters")
@@ -410,17 +433,12 @@ class TsundokuOptionsFlow(config_entries.OptionsFlowWithReload):
             return self._show_add_search_form(errors={"query": "empty_query"})
 
         try:
-            database_path = self._database_path
-            if not database_path.is_file():
-                raise FileNotFoundError("Tsundoku metadata database is unavailable")
-            database = MangaDatabase(database_path)
             self._search_results = await self.hass.async_add_executor_job(
-                partial(
-                    database.search_release_lines,
-                    query,
-                    country=user_input.get("country") or None,
-                    language=user_input.get("language") or None,
-                )
+                _search_release_lines,
+                self._database_path,
+                query,
+                user_input.get("country") or None,
+                user_input.get("language") or None,
             )
         except Exception:
             _LOGGER.exception("Could not search the Tsundoku database")
@@ -574,14 +592,9 @@ class TsundokuOptionsFlow(config_entries.OptionsFlowWithReload):
 
     async def _remove_schema(self) -> vol.Schema:
         """Build a selection form with labels for the currently tracked lines."""
-        hass = self.hass
         try:
-            database_path = self._database_path
-            if not database_path.is_file():
-                raise FileNotFoundError("Tsundoku metadata database is unavailable")
-            database = MangaDatabase(database_path)
-            labels = await hass.async_add_executor_job(
-                _format_tracked_lines, database, self._tracked_ids
+            labels = await self.hass.async_add_executor_job(
+                _format_tracked_lines, self._database_path, self._tracked_ids
             )
         except Exception:
             _LOGGER.exception("Could not resolve tracked manga names")
@@ -629,9 +642,10 @@ def _remove_manga_registry_entries(
 
 
 def _format_tracked_lines(
-    database: MangaDatabase, tome_ids: list[str]
+    database_path: Path, tome_ids: list[str]
 ) -> list[dict[str, str]]:
     """Resolve stored IDs to readable labels for the removal form."""
+    database = _open_database(database_path)
     options = []
     for tome_id in tome_ids:
         line = database.get_release_line(tome_id)
