@@ -6,7 +6,7 @@ Tsundoku follows the manga editions you choose and shows the latest published vo
 
 ## Status
 
-Version 1.0.0.
+Version 1.0.1.
 
 ## Features
 
