@@ -200,21 +200,19 @@ Metadata and release dates depend on the upstream dataset and may be incomplete,
 
 No external account or API key is required.
 
-## Installation
-
 ### HACS
 
 1. Open HACS in Home Assistant.
-2. Add this repository as a custom repository, selecting **Integration** as the category.
-3. Install Tsundoku and restart Home Assistant.
+2. Search for **Tsundoku** and install it.
+3. Restart Home Assistant.
 4. Go to **Settings → Devices & services → Add integration** and search for **Tsundoku**.
 
-### Manual installation
+If Tsundoku is not available in the HACS catalog yet, add this repository as a custom repository, selecting **Integration** as the category:
 
-1. Copy the `custom_components/tsundoku` directory into the `custom_components` directory of your Home Assistant configuration.
-2. Restart Home Assistant.
+1. Open HACS and add this repository as a custom repository.
+2. Install Tsundoku and restart Home Assistant.
 3. Go to **Settings → Devices & services → Add integration** and search for **Tsundoku**.
-
+   
 ## Setup and configuration
 
 1. Add the integration and enter a title, or part of a title, in the search form.
